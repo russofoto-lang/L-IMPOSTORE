@@ -49,48 +49,48 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
     };
 
     return (
-      <div className={`p-3 rounded-xl border ${colors[color]} w-full flex justify-between items-center`}>
-        <span className="text-xs font-bold uppercase tracking-widest opacity-70">{label}</span>
-        <span className="font-bungee text-xl">{name}</span>
+      <div className={`p-5 rounded-2xl border ${colors[color]} w-full flex justify-between items-center shadow-sm`}>
+        <span className="text-xs font-bold uppercase tracking-widest opacity-80">{label}</span>
+        <span className="font-bungee text-2xl">{name}</span>
       </div>
     );
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center space-y-6 animate-in zoom-in duration-500">
-      <header className="text-center space-y-2">
-        <h1 className={`text-4xl font-bungee ${headerColor}`}>
+    <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in zoom-in duration-500">
+      <header className="text-center space-y-3">
+        <h1 className={`text-5xl font-bungee ${headerColor} leading-tight drop-shadow-lg`}>
           {title}
         </h1>
-        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+        <p className="text-slate-400 font-bold text-base uppercase tracking-widest">
           {isFinal ? "FINALISSIMA CONCLUSA" : subTitle}
         </p>
       </header>
 
-      <div className="glass w-full p-6 rounded-3xl flex flex-col items-center space-y-4 text-center border-slate-700">
+      <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center space-y-6 text-center border-slate-700 shadow-xl">
         
-        <div className="w-full space-y-2">
+        <div className="w-full space-y-3">
           {renderPlayerBadge("Impostore", impostor?.name, 'rose')}
           {renderPlayerBadge("Mr. Wolf", wolf?.name, 'amber')}
         </div>
 
-        <div className="space-y-1 pt-4 border-t border-slate-700 w-full">
-          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">La parola segreta era:</p>
-          <h2 className="text-3xl font-bungee text-indigo-400 uppercase">{gameData.secretWord}</h2>
+        <div className="space-y-2 pt-6 border-t border-slate-700 w-full">
+          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">La parola segreta era:</p>
+          <h2 className="text-4xl font-bungee text-indigo-400 uppercase tracking-tight break-all">{gameData.secretWord}</h2>
         </div>
 
         {mode === 'TOURNAMENT' && (
-          <div className="w-full p-3 rounded-xl bg-slate-900/50 text-sm text-slate-400">
-            Controlla la classifica per i punteggi aggiornati.
+          <div className="w-full p-4 rounded-xl bg-slate-900/50 text-base text-slate-400 border border-slate-800">
+            Controlla la classifica per i punteggi!
           </div>
         )}
       </div>
 
-      <div className="w-full space-y-3 pt-2">
-        <Button fullWidth size="lg" onClick={onNext}>
+      <div className="w-full space-y-4 pt-2">
+        <Button fullWidth size="lg" onClick={onNext} className="text-xl py-5">
           {mode === 'TOURNAMENT' ? 'Vedi Classifica' : 'Nuova Partita'}
         </Button>
-        <Button fullWidth variant="ghost" onClick={() => window.location.reload()}>Esci</Button>
+        <Button fullWidth variant="ghost" onClick={() => window.location.reload()} className="text-lg">Esci dal Gioco</Button>
       </div>
     </div>
   );

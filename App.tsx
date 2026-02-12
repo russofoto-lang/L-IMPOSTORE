@@ -225,8 +225,8 @@ const App: React.FC = () => {
         {gameState === GameState.VOTING && gameData && (
           <div className="w-full flex flex-col h-full animate-in fade-in zoom-in duration-300">
              <div className="glass p-6 rounded-3xl text-center space-y-4 mb-4">
-               <h2 className="text-3xl font-bungee text-white">Chi volete eliminare?</h2>
-               <p className="text-slate-300 text-sm">
+               <h2 className="text-4xl font-bungee text-white">Chi volete eliminare?</h2>
+               <p className="text-slate-300 text-base">
                  {settings.enemyConfig === 'BOTH' 
                    ? "Basta trovare uno dei nemici per vincere! Scegliete bene." 
                    : "Toccate il nome del giocatore che sospettate."}
@@ -238,10 +238,10 @@ const App: React.FC = () => {
                   <button
                     key={p.id}
                     onClick={() => handlePlayerVoted(p)}
-                    className="w-full p-4 rounded-xl bg-slate-800 hover:bg-rose-600/20 hover:border-rose-500 border border-slate-700 transition-all flex items-center justify-between group"
+                    className="w-full p-5 rounded-xl bg-slate-800 hover:bg-rose-600/20 hover:border-rose-500 border border-slate-700 transition-all flex items-center justify-between group"
                   >
-                    <span className="font-bold text-lg text-white group-hover:text-rose-400">{p.name}</span>
-                    <i className="fa-solid fa-skull text-slate-600 group-hover:text-rose-500"></i>
+                    <span className="font-bold text-xl text-white group-hover:text-rose-400">{p.name}</span>
+                    <i className="fa-solid fa-skull text-slate-600 group-hover:text-rose-500 text-xl"></i>
                   </button>
                 ))}
              </div>

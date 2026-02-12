@@ -27,12 +27,12 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
     if (currentPlayer.role === 'MR_WOLF') {
       return (
         <>
-          <div className="w-20 h-20 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/50">
-            <i className="fa-solid fa-dog text-4xl"></i>
+          <div className="w-24 h-24 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-amber-500/50">
+            <i className="fa-solid fa-dog text-5xl"></i>
           </div>
-          <h3 className="text-3xl font-bungee text-amber-500">SEI MR. WOLF!</h3>
-          <p className="mt-4 text-slate-300">Non conosci la parola segreta. Mimetizzati!</p>
-          <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-200">
+          <h3 className="text-4xl font-bungee text-amber-500 leading-tight">SEI MR. WOLF!</h3>
+          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Mimetizzati!</p>
+          <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-200 leading-relaxed">
              <strong>Super Potere:</strong> Se ti scoprono, avrai un'ultima possibilità per indovinare la parola e rubare la vittoria!
           </div>
         </>
@@ -42,48 +42,48 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
     if (currentPlayer.role === 'IMPOSTOR') {
       return (
         <>
-          <div className="w-20 h-20 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/50">
-            <i className="fa-solid fa-user-secret text-4xl"></i>
+          <div className="w-24 h-24 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-rose-500/50">
+            <i className="fa-solid fa-user-secret text-5xl"></i>
           </div>
-          <h3 className="text-3xl font-bungee text-rose-500">SEI L'IMPOSTORE!</h3>
-          <p className="mt-4 text-slate-300">Non conosci la parola segreta. Ascolta bene gli altri e dì una parola che ti faccia sembrare uno di loro!</p>
+          <h3 className="text-4xl font-bungee text-rose-500 leading-tight">SEI L'IMPOSTORE!</h3>
+          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Ascolta bene e mimetizzati!</p>
         </>
       );
     }
 
     return (
       <>
-        <div className="w-20 h-20 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-500/50">
-          <i className="fa-solid fa-key text-4xl"></i>
+        <div className="w-24 h-24 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-indigo-500/50">
+          <i className="fa-solid fa-key text-5xl"></i>
         </div>
         <h3 className="text-xl text-slate-400 uppercase tracking-widest font-bold">La Parola è:</h3>
-        <h3 className="text-4xl font-bungee text-indigo-400 mt-2 uppercase tracking-tight">{gameData.secretWord}</h3>
-        <p className="mt-4 text-slate-300">Dovrai dire una sola parola attinente senza svelarla troppo a Mr. Wolf o all'Impostore!</p>
+        <h3 className="text-5xl font-bungee text-indigo-400 mt-3 uppercase tracking-tight break-all px-2">{gameData.secretWord}</h3>
+        <p className="mt-6 text-slate-300 text-lg leading-relaxed">Dì una sola parola attinente senza svelarla troppo ai nemici!</p>
       </>
     );
   };
 
   return (
     <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-slate-400">Tocca a:</h2>
-        <h1 className="text-4xl font-bungee text-white">{currentPlayer.name}</h1>
+      <div className="text-center space-y-3">
+        <h2 className="text-2xl font-bold text-slate-400 uppercase tracking-widest">Tocca a:</h2>
+        <h1 className="text-5xl font-bungee text-white drop-shadow-lg">{currentPlayer.name}</h1>
       </div>
 
-      <div className="glass w-full p-8 rounded-3xl flex flex-col items-center justify-center min-h-[350px] text-center space-y-6 relative overflow-hidden">
+      <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center justify-center min-h-[400px] text-center space-y-8 relative overflow-hidden">
         {!isRevealed ? (
           <>
-            <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-2">
-               <i className="fa-solid fa-fingerprint text-4xl text-indigo-500"></i>
+            <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-2 shadow-inner">
+               <i className="fa-solid fa-fingerprint text-5xl text-indigo-500"></i>
             </div>
-            <p className="text-slate-300">Passa il telefono a <strong>{currentPlayer.name}</strong> e premi il pulsante per scoprire il tuo ruolo.</p>
-            <Button size="lg" onClick={() => setIsRevealed(true)}>Scopri Ruolo</Button>
+            <p className="text-slate-300 text-xl leading-relaxed px-4">Passa il telefono a <strong>{currentPlayer.name}</strong> e premi il pulsante per scoprire il tuo ruolo.</p>
+            <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">Scopri Ruolo</Button>
           </>
         ) : (
-          <div className="animate-in zoom-in duration-300 w-full">
+          <div className="animate-in zoom-in duration-300 w-full flex flex-col items-center">
             {getRoleContent()}
-            <div className="mt-8">
-              <Button variant="secondary" onClick={handleNext}>
+            <div className="mt-10 w-full">
+              <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
                 {currentPlayerIndex < gameData.players.length - 1 ? "Prossimo Giocatore" : "Inizia il Round"}
               </Button>
             </div>
@@ -91,12 +91,12 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {gameData.players.map((_, idx) => (
           <div 
             key={idx} 
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-              idx === currentPlayerIndex ? 'bg-indigo-500 w-6' : idx < currentPlayerIndex ? 'bg-indigo-500/40' : 'bg-slate-700'
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              idx === currentPlayerIndex ? 'bg-indigo-500 w-8' : idx < currentPlayerIndex ? 'bg-indigo-500/40' : 'bg-slate-700'
             }`}
           ></div>
         ))}

@@ -29,7 +29,7 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
   const [turnIndex, setTurnIndex] = useState(0);
   
   // Combine tips based on mode
-  const currentPool = settings.enableMrWolf ? [...STRATEGIC_TIPS, ...WOLF_TIPS] : STRATEGIC_TIPS;
+  const currentPool = settings.enemyConfig === 'WOLF_ONLY' || settings.enemyConfig === 'BOTH' ? [...STRATEGIC_TIPS, ...WOLF_TIPS] : STRATEGIC_TIPS;
   const [currentTip, setCurrentTip] = useState(currentPool[0]);
 
   useEffect(() => {
@@ -68,65 +68,65 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
 
   return (
     <div className="w-full flex flex-col space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="glass p-6 rounded-3xl text-center border-indigo-500/30 flex justify-between items-center">
+      <div className="glass p-6 rounded-3xl text-center border-indigo-500/30 flex justify-between items-center shadow-lg">
         <div>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Tempo</p>
-          <div className={`text-2xl font-bungee ${timeLeft < 30 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Tempo</p>
+          <div className={`text-4xl font-bungee ${timeLeft < 30 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
             {formatTime(timeLeft)}
           </div>
         </div>
-        <div className="h-10 w-px bg-slate-700"></div>
-        <div className="text-right">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Turno di:</p>
-          <div className="text-xl font-bungee text-indigo-400 truncate max-w-[150px]">
+        <div className="h-12 w-px bg-slate-700 mx-2"></div>
+        <div className="text-right flex-1 min-w-0">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Turno di:</p>
+          <div className="text-2xl font-bungee text-indigo-400 truncate w-full">
             {gameData.players[turnIndex].name}
           </div>
         </div>
       </div>
 
-      <div className="glass p-6 rounded-3xl space-y-4 text-center">
-        <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
+      <div className="glass p-7 rounded-3xl space-y-5 text-center">
+        <h3 className="text-xl font-bold text-white flex items-center justify-center gap-2">
           <i className="fa-solid fa-bullhorn text-indigo-400"></i>
           Regola del Round
         </h3>
-        <p className="text-slate-300 text-sm">
+        <p className="text-slate-300 text-base leading-relaxed">
           A turno, ogni giocatore deve dire <span className="text-indigo-400 font-bold">una sola parola</span> attinente alla parola segreta.
         </p>
-        <Button variant="secondary" size="sm" onClick={nextTurn}>Prossimo Giocatore</Button>
+        <Button variant="secondary" size="md" onClick={nextTurn} className="text-lg">Prossimo Giocatore</Button>
       </div>
 
-      <div className={`glass p-6 rounded-3xl space-y-3 relative overflow-hidden ${settings.enableMrWolf ? 'border-amber-500/30' : ''}`}>
+      <div className={`glass p-6 rounded-3xl space-y-4 relative overflow-hidden ${settings.enemyConfig !== 'IMPOSTOR_ONLY' ? 'border-amber-500/30' : ''}`}>
         <div className="absolute top-0 right-0 p-4 opacity-10">
-           <i className={`fa-solid ${settings.enableMrWolf ? 'fa-dog' : 'fa-chess-knight'} text-6xl text-white`}></i>
+           <i className={`fa-solid ${settings.enemyConfig !== 'IMPOSTOR_ONLY' ? 'fa-dog' : 'fa-chess-knight'} text-6xl text-white`}></i>
         </div>
-        <h3 className={`text-sm font-bold flex items-center gap-2 uppercase tracking-wider relative z-10 ${settings.enableMrWolf ? 'text-amber-400' : 'text-indigo-300'}`}>
+        <h3 className={`text-sm font-bold flex items-center gap-2 uppercase tracking-wider relative z-10 ${settings.enemyConfig !== 'IMPOSTOR_ONLY' ? 'text-amber-400' : 'text-indigo-300'}`}>
           <i className="fa-solid fa-lightbulb"></i>
-          {settings.enableMrWolf ? 'Consiglio Anti-Wolf' : 'Consiglio Strategico'}
+          {settings.enemyConfig !== 'IMPOSTOR_ONLY' ? 'Consiglio Anti-Wolf' : 'Consiglio Strategico'}
         </h3>
-        <p className="text-slate-300 text-sm italic min-h-[40px] flex items-center relative z-10 transition-opacity duration-500">
+        <p className="text-slate-300 text-base italic min-h-[50px] flex items-center relative z-10 transition-opacity duration-500 leading-relaxed">
           "{currentTip}"
         </p>
       </div>
 
       <div className="glass p-6 rounded-3xl">
-        <h3 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest">Ordine di gioco:</h3>
-        <div className="flex flex-col gap-2">
+        <h3 className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">Ordine di gioco:</h3>
+        <div className="flex flex-col gap-3">
           {gameData.players.map((p, idx) => (
-            <div key={p.id} className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${idx === turnIndex ? 'bg-indigo-600/20 border border-indigo-500/50' : 'opacity-50'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${idx === turnIndex ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+            <div key={p.id} className={`flex items-center gap-4 p-3 rounded-xl transition-colors border ${idx === turnIndex ? 'bg-indigo-600/20 border-indigo-500/50 scale-105' : 'border-transparent opacity-50'}`}>
+              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx === turnIndex ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
                 {idx + 1}
               </span>
-              <span className={`text-sm font-medium ${idx === turnIndex ? 'text-white' : 'text-slate-400'}`}>
+              <span className={`text-lg font-bold ${idx === turnIndex ? 'text-white' : 'text-slate-400'}`}>
                 {p.name}
               </span>
-              {idx === turnIndex && <i className="fa-solid fa-chevron-left ml-auto text-indigo-400 animate-bounce-horizontal"></i>}
+              {idx === turnIndex && <i className="fa-solid fa-chevron-left ml-auto text-indigo-400 animate-bounce-horizontal text-xl"></i>}
             </div>
           ))}
         </div>
       </div>
 
       <div className="pt-2">
-        <Button fullWidth size="lg" onClick={onVote}>Passa alla Votazione</Button>
+        <Button fullWidth size="lg" onClick={onVote} className="text-xl py-5">Votazione Ora!</Button>
       </div>
     </div>
   );

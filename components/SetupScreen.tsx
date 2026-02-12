@@ -57,27 +57,27 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 relative">
       <button 
         onClick={onOpenInstructions}
-        className="absolute top-0 right-0 w-10 h-10 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-all z-10 border border-slate-600"
+        className="absolute top-0 right-0 w-11 h-11 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-all z-10 border border-slate-600 shadow-lg"
         title="Come Giocare"
       >
-        <i className="fa-solid fa-question"></i>
+        <i className="fa-solid fa-question text-lg"></i>
       </button>
 
       <header className="text-center space-y-2 pt-2">
-        <h1 className="text-5xl font-bungee text-indigo-500 tracking-tighter italic">L'IMPOSTORE</h1>
-        <p className="text-slate-400">Riesci a mimetizzarti nel gruppo?</p>
+        <h1 className="text-6xl font-bungee text-indigo-500 tracking-tighter italic">L'IMPOSTORE</h1>
+        <p className="text-slate-400 text-lg">Riesci a mimetizzarti nel gruppo?</p>
       </header>
 
       {/* Mode Selection */}
       <section className="glass p-2 rounded-2xl flex">
         <button
-          className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'SINGLE' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${mode === 'SINGLE' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           onClick={() => setMode('SINGLE')}
         >
           Singola
         </button>
         <button
-          className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'TOURNAMENT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${mode === 'TOURNAMENT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           onClick={() => setMode('TOURNAMENT')}
         >
           Torneo
@@ -85,46 +85,46 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
       </section>
 
       {/* Enemy Config Selection */}
-      <section className="glass p-4 rounded-3xl space-y-3 border-rose-500/20">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Configurazione Nemici</h3>
-        <div className="grid grid-cols-1 gap-2">
+      <section className="glass p-5 rounded-3xl space-y-4 border-rose-500/20">
+        <h3 className="text-base font-bold uppercase tracking-widest text-slate-400">Configurazione Nemici</h3>
+        <div className="grid grid-cols-1 gap-3">
           <button 
             onClick={() => setEnemyConfig('IMPOSTOR_ONLY')}
-            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-600/20 border-rose-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
+            className={`p-4 rounded-xl flex items-center gap-4 transition-all border ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-600/20 border-rose-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-500 text-white' : 'bg-slate-700'}`}>
-              <i className="fa-solid fa-user-secret"></i>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-user-secret text-lg"></i>
             </div>
             <div className="text-left">
-              <div className="font-bold text-sm">Solo Impostore</div>
-              <div className="text-[10px] opacity-70">Classico. Scopritelo per vincere.</div>
+              <div className="font-bold text-base">Solo Impostore</div>
+              <div className="text-xs opacity-70">Classico. Scopritelo per vincere.</div>
             </div>
           </button>
 
           <button 
             onClick={() => setEnemyConfig('WOLF_ONLY')}
-            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-600/20 border-amber-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
+            className={`p-4 rounded-xl flex items-center gap-4 transition-all border ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-600/20 border-amber-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-500 text-white' : 'bg-slate-700'}`}>
-              <i className="fa-solid fa-dog"></i>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-dog text-lg"></i>
             </div>
             <div className="text-left">
-              <div className="font-bold text-sm">Solo Mr. Wolf</div>
-              <div className="text-[10px] opacity-70">Se scoperto, può indovinare la parola!</div>
+              <div className="font-bold text-base">Solo Mr. Wolf</div>
+              <div className="text-xs opacity-70">Se scoperto, può indovinare la parola!</div>
             </div>
           </button>
 
           <button 
             onClick={() => setEnemyConfig('BOTH')}
             disabled={players.length < 5}
-            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'BOTH' ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'} ${players.length < 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`p-4 rounded-xl flex items-center gap-4 transition-all border ${enemyConfig === 'BOTH' ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'} ${players.length < 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'BOTH' ? 'bg-purple-500 text-white' : 'bg-slate-700'}`}>
-              <i className="fa-solid fa-user-group"></i>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${enemyConfig === 'BOTH' ? 'bg-purple-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-user-group text-lg"></i>
             </div>
             <div className="text-left">
-              <div className="font-bold text-sm">Entrambi (5+ Gioc.)</div>
-              <div className="text-[10px] opacity-70">Caos totale! Due nemici in gioco.</div>
+              <div className="font-bold text-base">Entrambi (5+ Gioc.)</div>
+              <div className="text-xs opacity-70">Caos totale! Due nemici in gioco.</div>
             </div>
           </button>
         </div>
@@ -132,9 +132,9 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
 
       {mode === 'TOURNAMENT' && (
         <section className="glass p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-rose-400">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-rose-400">
             <i className="fa-solid fa-trophy"></i>
-            Lunghezza Torneo: {rounds} Round
+            Torneo: {rounds} Round
           </h2>
           <input 
             type="range" 
@@ -142,31 +142,31 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
             max="10" 
             value={rounds} 
             onChange={(e) => setRounds(parseInt(e.target.value))}
-            className="w-full accent-rose-500"
+            className="w-full accent-rose-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
           />
         </section>
       )}
 
-      <section className="glass p-6 rounded-3xl space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
+      <section className="glass p-6 rounded-3xl space-y-5">
+        <h2 className="text-xl font-bold flex items-center gap-2">
           <i className="fa-solid fa-users text-indigo-400"></i>
           Giocatori ({players.length})
         </h2>
-        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="grid grid-cols-1 gap-3 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
           {players.map((name, idx) => (
             <div key={idx} className="flex gap-2">
               <input
                 type="text"
                 value={name}
                 onChange={(e) => updatePlayerName(idx, e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="bg-slate-800 border border-slate-700 text-white text-lg rounded-xl px-4 py-3 flex-grow focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button 
                 onClick={() => removePlayer(idx)}
-                className="w-10 h-10 flex items-center justify-center text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                className="w-12 h-12 flex items-center justify-center text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
                 disabled={players.length <= 3}
               >
-                <i className="fa-solid fa-trash-can"></i>
+                <i className="fa-solid fa-trash-can text-lg"></i>
               </button>
             </div>
           ))}
@@ -177,6 +177,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
           fullWidth 
           onClick={addPlayer}
           disabled={players.length >= 20}
+          className="text-lg py-4"
         >
           <i className="fa-solid fa-plus mr-2"></i>
           Aggiungi Giocatore
@@ -187,6 +188,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
         fullWidth 
         size="lg" 
         onClick={handleStart}
+        className="text-xl py-5"
       >
         Inizia {mode === 'TOURNAMENT' ? 'Torneo' : 'Partita'}
       </Button>
