@@ -11,6 +11,7 @@ import PlayScreen from './components/PlayScreen';
 import ResultScreen from './components/ResultScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import MrWolfScreen from './components/MrWolfScreen';
+import InstructionsScreen from './components/InstructionsScreen';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
@@ -125,17 +126,17 @@ const App: React.FC = () => {
       const isBadGuy = p.role === 'IMPOSTOR' || p.role === 'MR_WOLF';
 
       if (winner === 'players') {
-        if (p.role === 'CIVILIAN') pointsToAdd = 1;
+        if (p.role === 'CIVILIAN') pointsToAdd = 100;
       } else {
         // Bad guys won
         if (isBadGuy) {
            // Wolf Solo Win
-           if (winner === 'mr_wolf' && p.role === 'MR_WOLF') pointsToAdd = 5; // Big bonus for stealing win
-           else if (winner === 'enemies') pointsToAdd = 3; // Standard win
-           else if (winner === 'impostor') pointsToAdd = 3;
+           if (winner === 'mr_wolf' && p.role === 'MR_WOLF') pointsToAdd = 500; // Big bonus for stealing win
+           else if (winner === 'enemies') pointsToAdd = 300; // Standard win
+           else if (winner === 'impostor') pointsToAdd = 300;
            
            // If Enemies win generically (Civilian voted out), both get points
-           if (winner === 'enemies') pointsToAdd = 3;
+           if (winner === 'enemies') pointsToAdd = 300;
         }
       }
       
@@ -194,7 +195,15 @@ const App: React.FC = () => {
 
       <main className="w-full h-full flex flex-col">
         {gameState === GameState.SETUP && (
-          <SetupScreen onStart={(s) => startGame(s)} initialSettings={settings} />
+          <SetupScreen 
+            onStart={(s) => startGame(s)} 
+            initialSettings={settings} 
+            onOpenInstructions={() => setGameState(GameState.INSTRUCTIONS)}
+          />
+        )}
+
+        {gameState === GameState.INSTRUCTIONS && (
+          <InstructionsScreen onBack={() => setGameState(GameState.SETUP)} />
         )}
         
         {gameState === GameState.REVEAL && gameData && (
@@ -218,7 +227,9 @@ const App: React.FC = () => {
              <div className="glass p-6 rounded-3xl text-center space-y-4 mb-4">
                <h2 className="text-3xl font-bungee text-white">Chi volete eliminare?</h2>
                <p className="text-slate-300 text-sm">
-                 Toccate il nome del giocatore che sospettate.
+                 {settings.enemyConfig === 'BOTH' 
+                   ? "Basta trovare uno dei nemici per vincere! Scegliete bene." 
+                   : "Toccate il nome del giocatore che sospettate."}
                </p>
              </div>
              

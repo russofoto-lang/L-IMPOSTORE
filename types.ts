@@ -1,6 +1,7 @@
 
 export enum GameState {
   SETUP = 'SETUP',
+  INSTRUCTIONS = 'INSTRUCTIONS',
   REVEAL = 'REVEAL',
   PLAYING = 'PLAYING',
   VOTING = 'VOTING',

@@ -5,10 +5,11 @@ import { Button } from './ui/Button';
 
 interface SetupScreenProps {
   onStart: (settings: GameSettings) => void;
+  onOpenInstructions: () => void;
   initialSettings: GameSettings;
 }
 
-const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, initialSettings }) => {
+const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, initialSettings }) => {
   const [players, setPlayers] = useState<string[]>(initialSettings.players);
   const [timer, setTimer] = useState(initialSettings.timerDuration / 60);
   const [mode, setMode] = useState<GameMode>(initialSettings.mode || 'SINGLE');
@@ -53,8 +54,16 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, initialSettings }) =
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <header className="text-center space-y-2">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 relative">
+      <button 
+        onClick={onOpenInstructions}
+        className="absolute top-0 right-0 w-10 h-10 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-all z-10 border border-slate-600"
+        title="Come Giocare"
+      >
+        <i className="fa-solid fa-question"></i>
+      </button>
+
+      <header className="text-center space-y-2 pt-2">
         <h1 className="text-5xl font-bungee text-indigo-500 tracking-tighter italic">L'IMPOSTORE</h1>
         <p className="text-slate-400">Riesci a mimetizzarti nel gruppo?</p>
       </header>
