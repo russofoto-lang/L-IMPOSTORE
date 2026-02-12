@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GameSettings } from '../types';
+import { GameSettings, GameMode, EnemyConfig } from '../types';
 import { Button } from './ui/Button';
 
 interface SetupScreenProps {
@@ -11,9 +11,13 @@ interface SetupScreenProps {
 const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, initialSettings }) => {
   const [players, setPlayers] = useState<string[]>(initialSettings.players);
   const [timer, setTimer] = useState(initialSettings.timerDuration / 60);
+  const [mode, setMode] = useState<GameMode>(initialSettings.mode || 'SINGLE');
+  const [rounds, setRounds] = useState(3);
+  // Default to what was passed or Impostor Only
+  const [enemyConfig, setEnemyConfig] = useState<EnemyConfig>(initialSettings.enemyConfig || 'IMPOSTOR_ONLY');
 
   const addPlayer = () => {
-    if (players.length < 12) {
+    if (players.length < 20) {
       setPlayers([...players, `Giocatore ${players.length + 1}`]);
     }
   };
@@ -32,19 +36,114 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, initialSettings }) =
     setPlayers(newPlayers);
   };
 
+  const handleStart = () => {
+    // Force switch to simpler mode if not enough players for BOTH
+    let finalConfig = enemyConfig;
+    if (enemyConfig === 'BOTH' && players.length < 5) {
+      finalConfig = 'IMPOSTOR_ONLY';
+    }
+
+    onStart({ 
+      players, 
+      timerDuration: timer * 60, 
+      mode, 
+      totalRounds: rounds, 
+      enemyConfig: finalConfig 
+    });
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <header className="text-center space-y-2">
         <h1 className="text-5xl font-bungee text-indigo-500 tracking-tighter italic">L'IMPOSTORE</h1>
         <p className="text-slate-400">Riesci a mimetizzarti nel gruppo?</p>
       </header>
+
+      {/* Mode Selection */}
+      <section className="glass p-2 rounded-2xl flex">
+        <button
+          className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'SINGLE' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          onClick={() => setMode('SINGLE')}
+        >
+          Singola
+        </button>
+        <button
+          className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'TOURNAMENT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          onClick={() => setMode('TOURNAMENT')}
+        >
+          Torneo
+        </button>
+      </section>
+
+      {/* Enemy Config Selection */}
+      <section className="glass p-4 rounded-3xl space-y-3 border-rose-500/20">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Configurazione Nemici</h3>
+        <div className="grid grid-cols-1 gap-2">
+          <button 
+            onClick={() => setEnemyConfig('IMPOSTOR_ONLY')}
+            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-600/20 border-rose-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'IMPOSTOR_ONLY' ? 'bg-rose-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-user-secret"></i>
+            </div>
+            <div className="text-left">
+              <div className="font-bold text-sm">Solo Impostore</div>
+              <div className="text-[10px] opacity-70">Classico. Scopritelo per vincere.</div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setEnemyConfig('WOLF_ONLY')}
+            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-600/20 border-amber-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'WOLF_ONLY' ? 'bg-amber-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-dog"></i>
+            </div>
+            <div className="text-left">
+              <div className="font-bold text-sm">Solo Mr. Wolf</div>
+              <div className="text-[10px] opacity-70">Se scoperto, può indovinare la parola!</div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setEnemyConfig('BOTH')}
+            disabled={players.length < 5}
+            className={`p-3 rounded-xl flex items-center gap-3 transition-all border ${enemyConfig === 'BOTH' ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'} ${players.length < 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${enemyConfig === 'BOTH' ? 'bg-purple-500 text-white' : 'bg-slate-700'}`}>
+              <i className="fa-solid fa-user-group"></i>
+            </div>
+            <div className="text-left">
+              <div className="font-bold text-sm">Entrambi (5+ Gioc.)</div>
+              <div className="text-[10px] opacity-70">Caos totale! Due nemici in gioco.</div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {mode === 'TOURNAMENT' && (
+        <section className="glass p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-rose-400">
+            <i className="fa-solid fa-trophy"></i>
+            Lunghezza Torneo: {rounds} Round
+          </h2>
+          <input 
+            type="range" 
+            min="2" 
+            max="10" 
+            value={rounds} 
+            onChange={(e) => setRounds(parseInt(e.target.value))}
+            className="w-full accent-rose-500"
+          />
+        </section>
+      )}
 
       <section className="glass p-6 rounded-3xl space-y-4">
         <h2 className="text-lg font-bold flex items-center gap-2">
           <i className="fa-solid fa-users text-indigo-400"></i>
           Giocatori ({players.length})
         </h2>
-        <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
           {players.map((name, idx) => (
             <div key={idx} className="flex gap-2">
               <input
@@ -68,34 +167,19 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, initialSettings }) =
           variant="secondary" 
           fullWidth 
           onClick={addPlayer}
-          disabled={players.length >= 12}
+          disabled={players.length >= 20}
         >
           <i className="fa-solid fa-plus mr-2"></i>
           Aggiungi Giocatore
         </Button>
       </section>
 
-      <section className="glass p-6 rounded-3xl space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <i className="fa-solid fa-clock text-indigo-400"></i>
-          Timer: {timer} minuti
-        </h2>
-        <input 
-          type="range" 
-          min="1" 
-          max="15" 
-          value={timer} 
-          onChange={(e) => setTimer(parseInt(e.target.value))}
-          className="w-full accent-indigo-500"
-        />
-      </section>
-
       <Button 
         fullWidth 
         size="lg" 
-        onClick={() => onStart({ players, timerDuration: timer * 60 })}
+        onClick={handleStart}
       >
-        Inizia Partita
+        Inizia {mode === 'TOURNAMENT' ? 'Torneo' : 'Partita'}
       </Button>
     </div>
   );

@@ -7,7 +7,7 @@ interface PlayScreenProps {
   gameData: GameData;
   settings: GameSettings;
   onVote: () => void;
-  onEnd: (winner: 'players' | 'impostor') => void;
+  onEnd: (winner: 'players' | 'impostor' | 'mr_wolf') => void;
 }
 
 const STRATEGIC_TIPS = [
@@ -18,10 +18,19 @@ const STRATEGIC_TIPS = [
   "Se sei l'impostore, rimani calmo e segui la corrente."
 ];
 
+const WOLF_TIPS = [
+  "Attenzione! Se Mr. Wolf capisce la parola, vince anche se lo scoprite!",
+  "Siate criptici! Mr. Wolf vi ascolta per indovinare.",
+  "Non regalare la parola segreta a Mr. Wolf!",
+];
+
 const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onEnd }) => {
   const [timeLeft, setTimeLeft] = useState(settings.timerDuration);
   const [turnIndex, setTurnIndex] = useState(0);
-  const [currentTip, setCurrentTip] = useState(STRATEGIC_TIPS[0]);
+  
+  // Combine tips based on mode
+  const currentPool = settings.enableMrWolf ? [...STRATEGIC_TIPS, ...WOLF_TIPS] : STRATEGIC_TIPS;
+  const [currentTip, setCurrentTip] = useState(currentPool[0]);
 
   useEffect(() => {
     // Timer Logic
@@ -38,14 +47,14 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
 
     // Random Tip Logic
     const tipInterval = setInterval(() => {
-      setCurrentTip(STRATEGIC_TIPS[Math.floor(Math.random() * STRATEGIC_TIPS.length)]);
+      setCurrentTip(currentPool[Math.floor(Math.random() * currentPool.length)]);
     }, 5000);
 
     return () => {
       clearInterval(timer);
       clearInterval(tipInterval);
     };
-  }, [onVote]);
+  }, [onVote, currentPool]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -86,13 +95,13 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
         <Button variant="secondary" size="sm" onClick={nextTurn}>Prossimo Giocatore</Button>
       </div>
 
-      <div className="glass p-6 rounded-3xl space-y-3 relative overflow-hidden">
+      <div className={`glass p-6 rounded-3xl space-y-3 relative overflow-hidden ${settings.enableMrWolf ? 'border-amber-500/30' : ''}`}>
         <div className="absolute top-0 right-0 p-4 opacity-10">
-           <i className="fa-solid fa-chess-knight text-6xl text-white"></i>
+           <i className={`fa-solid ${settings.enableMrWolf ? 'fa-dog' : 'fa-chess-knight'} text-6xl text-white`}></i>
         </div>
-        <h3 className="text-sm font-bold flex items-center gap-2 text-indigo-300 uppercase tracking-wider relative z-10">
+        <h3 className={`text-sm font-bold flex items-center gap-2 uppercase tracking-wider relative z-10 ${settings.enableMrWolf ? 'text-amber-400' : 'text-indigo-300'}`}>
           <i className="fa-solid fa-lightbulb"></i>
-          Consiglio Strategico
+          {settings.enableMrWolf ? 'Consiglio Anti-Wolf' : 'Consiglio Strategico'}
         </h3>
         <p className="text-slate-300 text-sm italic min-h-[40px] flex items-center relative z-10 transition-opacity duration-500">
           "{currentTip}"
