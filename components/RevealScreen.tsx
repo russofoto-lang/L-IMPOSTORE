@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { GameData } from '../types';
+import { GameData, GameSettings } from '../types';
 import { Button } from './ui/Button';
 
 interface RevealScreenProps {
   gameData: GameData;
+  settings: GameSettings;
   onFinish: () => void;
 }
 
-const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
+const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinish }) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
 
@@ -32,7 +33,13 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
           </div>
           <h3 className="text-4xl font-bungee text-amber-500 leading-tight">SEI MR. WOLF!</h3>
           <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Mimetizzati!</p>
-          <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-200 leading-relaxed">
+          {settings.showCategoryHint && (
+            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
+              <i className="fa-solid fa-eye mr-2"></i>
+              <strong>Categoria:</strong> {gameData.wordCategory}
+            </div>
+          )}
+          <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-200 leading-relaxed">
              <strong>Super Potere:</strong> Se ti scoprono, avrai un'ultima possibilità per indovinare la parola e rubare la vittoria!
           </div>
         </>
@@ -47,6 +54,12 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
           </div>
           <h3 className="text-4xl font-bungee text-rose-500 leading-tight">SEI L'IMPOSTORE!</h3>
           <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Ascolta bene e mimetizzati!</p>
+          {settings.showCategoryHint && (
+            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
+              <i className="fa-solid fa-eye mr-2"></i>
+              <strong>Categoria:</strong> {gameData.wordCategory}
+            </div>
+          )}
         </>
       );
     }
@@ -93,8 +106,8 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, onFinish }) => {
 
       <div className="flex gap-3">
         {gameData.players.map((_, idx) => (
-          <div 
-            key={idx} 
+          <div
+            key={idx}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
               idx === currentPlayerIndex ? 'bg-indigo-500 w-8' : idx < currentPlayerIndex ? 'bg-indigo-500/40' : 'bg-slate-700'
             }`}
