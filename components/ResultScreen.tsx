@@ -12,7 +12,7 @@ interface ResultScreenProps {
 const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) => {
   const winner = gameData.winner;
   const isFinal = gameData.isFinalRound;
-  
+
   // Identify Enemies
   const impostor = gameData.players.find(p => p.role === 'IMPOSTOR');
   const wolf = gameData.players.find(p => p.role === 'MR_WOLF');
@@ -40,12 +40,13 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
     subTitle = "È riuscito a scappare.";
   }
 
-  const renderPlayerBadge = (label: string, name: string | undefined, color: 'rose' | 'amber' | 'indigo') => {
+  const renderPlayerBadge = (label: string, name: string | undefined, color: 'rose' | 'amber' | 'indigo' | 'slate') => {
     if (!name) return null;
     const colors = {
       rose: "bg-rose-500/10 border-rose-500/50 text-rose-400",
       amber: "bg-amber-500/10 border-amber-500/50 text-amber-400",
-      indigo: "bg-indigo-500/10 border-indigo-500/50 text-indigo-400"
+      indigo: "bg-indigo-500/10 border-indigo-500/50 text-indigo-400",
+      slate: "bg-slate-700/50 border-slate-600 text-slate-300"
     };
 
     return (
@@ -68,8 +69,11 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
       </header>
 
       <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center space-y-6 text-center border-slate-700 shadow-xl">
-        
+
         <div className="w-full space-y-3">
+          {gameData.votedPlayer && (
+            renderPlayerBadge("Eliminato", gameData.votedPlayer.name, 'slate')
+          )}
           {renderPlayerBadge("Impostore", impostor?.name, 'rose')}
           {renderPlayerBadge("Mr. Wolf", wolf?.name, 'amber')}
         </div>
@@ -77,6 +81,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
         <div className="space-y-2 pt-6 border-t border-slate-700 w-full">
           <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">La parola segreta era:</p>
           <h2 className="text-4xl font-bungee text-indigo-400 uppercase tracking-tight break-all">{gameData.secretWord}</h2>
+          <p className="text-slate-500 text-sm mt-1">Categoria: {gameData.wordCategory}</p>
         </div>
 
         {mode === 'TOURNAMENT' && (
