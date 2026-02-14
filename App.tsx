@@ -295,7 +295,11 @@ const VotingScreen: React.FC<{
   return (
     <div className="w-full flex flex-col h-full animate-in fade-in zoom-in duration-300">
       <div className="glass p-6 rounded-3xl text-center space-y-4 mb-4">
-        <h2 className="text-4xl font-bungee text-white">Chi volete eliminare?</h2>
+        <h2 className="text-4xl font-bungee text-white">
+          {settings.enemyConfig === 'WOLF_ONLY' ? "Chi è Mr. Wolf?" :
+           settings.enemyConfig === 'BOTH' ? "Chi è il nemico?" :
+           "Chi è l'impostore?"}
+        </h2>
         <p className="text-slate-300 text-base">
           {settings.enemyConfig === 'BOTH'
             ? "Basta trovare uno dei nemici per vincere! Scegliete bene."
@@ -315,7 +319,7 @@ const VotingScreen: React.FC<{
             }`}
           >
             <span className={`font-bold text-xl ${selectedPlayer?.id === p.id ? 'text-rose-400' : 'text-white group-hover:text-rose-400'}`}>{p.name}</span>
-            <i className={`fa-solid fa-skull text-xl ${selectedPlayer?.id === p.id ? 'text-rose-500' : 'text-slate-600 group-hover:text-rose-500'}`}></i>
+            <i className={`fa-solid fa-crosshairs text-xl ${selectedPlayer?.id === p.id ? 'text-rose-500' : 'text-slate-600 group-hover:text-rose-500'}`}></i>
           </button>
         ))}
       </div>
@@ -323,7 +327,7 @@ const VotingScreen: React.FC<{
       {selectedPlayer && (
         <div className="mt-4 glass p-5 rounded-3xl animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
           <p className="text-center text-slate-300 text-lg">
-            Eliminare <span className="font-bungee text-rose-400">{selectedPlayer.name}</span>?
+            Secondo voi <span className="font-bungee text-rose-400">{selectedPlayer.name}</span> è il nemico?
           </p>
           <div className="flex gap-3">
             <Button
