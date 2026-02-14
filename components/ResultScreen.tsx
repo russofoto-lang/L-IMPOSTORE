@@ -25,7 +25,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
     title = "I Civili Vincono!";
     headerColor = "text-indigo-500";
     if (gameData.winMethod === 'guess') subTitle = "Mr. Wolf ha sbagliato la parola!";
-    else subTitle = "L'intruso è stato eliminato.";
+    else subTitle = "Avete smascherato il nemico!";
   } else if (winner === 'mr_wolf') {
     title = "Mr. Wolf Vince!";
     headerColor = "text-amber-500";
@@ -33,11 +33,11 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
   } else if (winner === 'enemies') {
     title = "I Nemici Vincono!";
     headerColor = "text-rose-500";
-    subTitle = "Avete eliminato un innocente!";
+    subTitle = "Avete accusato un innocente!";
   } else {
     title = "L'Impostore Vince!";
     headerColor = "text-rose-500";
-    subTitle = "È riuscito a scappare.";
+    subTitle = "Avete accusato la persona sbagliata!";
   }
 
   const renderPlayerBadge = (label: string, name: string | undefined, color: 'rose' | 'amber' | 'indigo' | 'slate') => {
@@ -72,7 +72,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) =
 
         <div className="w-full space-y-3">
           {gameData.votedPlayer && (
-            renderPlayerBadge("Eliminato", gameData.votedPlayer.name, 'slate')
+            renderPlayerBadge("Accusato", gameData.votedPlayer.name, 'slate')
           )}
           {renderPlayerBadge("Impostore", impostor?.name, 'rose')}
           {renderPlayerBadge("Mr. Wolf", wolf?.name, 'amber')}
