@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GameData, GameSettings } from '../types';
 import { Button } from './ui/Button';
 
@@ -29,7 +29,10 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
   const [turnIndex, setTurnIndex] = useState(0);
   
   // Combine tips based on mode
-  const currentPool = settings.enemyConfig === 'WOLF_ONLY' || settings.enemyConfig === 'BOTH' ? [...STRATEGIC_TIPS, ...WOLF_TIPS] : STRATEGIC_TIPS;
+  const currentPool = useMemo(() =>
+    settings.enemyConfig === 'WOLF_ONLY' || settings.enemyConfig === 'BOTH' ? [...STRATEGIC_TIPS, ...WOLF_TIPS] : STRATEGIC_TIPS,
+    [settings.enemyConfig]
+  );
   const [currentTip, setCurrentTip] = useState(currentPool[0]);
 
   useEffect(() => {

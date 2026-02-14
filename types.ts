@@ -29,16 +29,20 @@ export interface GameSettings {
   timerDuration: number;
   mode: GameMode;
   totalRounds: number;
-  enemyConfig: EnemyConfig; // Replaces enableMrWolf
+  enemyConfig: EnemyConfig;
+  selectedCategories: string[];
+  showCategoryHint: boolean;
 }
 
 export interface GameData {
   secretWord: string;
+  wordCategory: string;
   players: Player[];
-  impostorId: string; // Deprecated but kept for compatibility, prefer finding by role
   startTime: number;
   currentRound: number;
   winner?: 'players' | 'impostor' | 'mr_wolf' | 'enemies';
   winMethod?: 'vote' | 'guess' | 'time';
   isFinalRound?: boolean;
+  votedPlayer?: Player;
+  usedWords: string[];
 }
