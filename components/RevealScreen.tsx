@@ -89,17 +89,37 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinis
             <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-2 shadow-inner">
                <i className="fa-solid fa-fingerprint text-5xl text-indigo-500"></i>
             </div>
-            <p className="text-slate-300 text-xl leading-relaxed px-4">Passa il telefono a <strong>{currentPlayer.name}</strong>.</p>
-            <p className="text-slate-400 text-lg leading-relaxed px-4"><strong>{currentPlayer.name}</strong>, premi il pulsante per scoprire il tuo ruolo.</p>
-            <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">Scopri Ruolo</Button>
+            <div className="w-full px-4 space-y-4">
+              <p className="text-slate-300 text-xl leading-relaxed">
+                Passa il telefono a <strong className="text-white">{currentPlayer.name}</strong>
+              </p>
+              <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+                <p className="text-indigo-400 font-bold text-lg">
+                  <strong>{currentPlayer.name}</strong>, quando sei pronto premi qui sotto!
+                </p>
+                <p className="text-slate-500 text-sm mt-1">Nessun altro deve guardare lo schermo</p>
+              </div>
+            </div>
+            <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">
+              <i className="fa-solid fa-eye mr-3"></i>Scopri il tuo Ruolo
+            </Button>
           </>
         ) : (
           <div className="animate-in zoom-in duration-300 w-full flex flex-col items-center">
             {getRoleContent()}
-            <div className="mt-10 w-full">
-              <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
-                {currentPlayerIndex < gameData.players.length - 1 ? "Prossimo Giocatore" : "Inizia il Round"}
-              </Button>
+            <div className="mt-10 w-full space-y-3">
+              <p className="text-slate-500 text-sm text-center">Hai memorizzato il tuo ruolo?</p>
+              {currentPlayerIndex < gameData.players.length - 1 ? (
+                <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
+                  <i className="fa-solid fa-arrow-right mr-2"></i>
+                  Ho capito! Passo il telefono a {gameData.players[currentPlayerIndex + 1].name}
+                </Button>
+              ) : (
+                <Button onClick={handleNext} className="text-lg py-4 w-full">
+                  <i className="fa-solid fa-play mr-2"></i>
+                  Ho capito! Inizia il Round
+                </Button>
+              )}
             </div>
           </div>
         )}
