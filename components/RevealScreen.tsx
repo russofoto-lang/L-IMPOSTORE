@@ -98,7 +98,9 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinis
             {getRoleContent()}
             <div className="mt-10 w-full">
               <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
-                {currentPlayerIndex < gameData.players.length - 1 ? "Prossimo Giocatore" : "Inizia il Round"}
+                {currentPlayerIndex < gameData.players.length - 1
+                  ? `Clicca e passa il telefono a ${gameData.players[currentPlayerIndex + 1].name}`
+                  : "Inizia il Round"}
               </Button>
             </div>
           </div>
