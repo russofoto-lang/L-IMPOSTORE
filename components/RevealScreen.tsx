@@ -89,7 +89,8 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinis
             <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-2 shadow-inner">
                <i className="fa-solid fa-fingerprint text-5xl text-indigo-500"></i>
             </div>
-            <p className="text-slate-300 text-xl leading-relaxed px-4">Passa il telefono a <strong>{currentPlayer.name}</strong> e premi il pulsante per scoprire il tuo ruolo.</p>
+            <p className="text-slate-300 text-xl leading-relaxed px-4">Passa il telefono a <strong>{currentPlayer.name}</strong>.</p>
+            <p className="text-slate-400 text-lg leading-relaxed px-4"><strong>{currentPlayer.name}</strong>, premi il pulsante per scoprire il tuo ruolo.</p>
             <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">Scopri Ruolo</Button>
           </>
         ) : (
