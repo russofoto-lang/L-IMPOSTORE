@@ -1,104 +1,142 @@
 
-import React from 'react';
-import { GameData, GameMode } from '../types';
+import React, { useState } from 'react';
+import { GameData, GameSettings } from '../types';
 import { Button } from './ui/Button';
 
-interface ResultScreenProps {
+interface RevealScreenProps {
   gameData: GameData;
-  mode: GameMode;
-  onNext: () => void;
+  settings: GameSettings;
+  onFinish: () => void;
 }
 
-const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) => {
-  const winner = gameData.winner;
-  const isFinal = gameData.isFinalRound;
+const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinish }) => {
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [isRevealed, setIsRevealed] = useState(false);
 
-  // Identify Enemies
-  const impostor = gameData.players.find(p => p.role === 'IMPOSTOR');
-  const wolf = gameData.players.find(p => p.role === 'MR_WOLF');
+  const currentPlayer = gameData.players[currentPlayerIndex];
 
-  let title = "";
-  let subTitle = "";
-  let headerColor = "";
+  const handleNext = () => {
+    if (currentPlayerIndex < gameData.players.length - 1) {
+      setCurrentPlayerIndex(currentPlayerIndex + 1);
+      setIsRevealed(false);
+    } else {
+      onFinish();
+    }
+  };
 
-  if (winner === 'players') {
-    title = "I Civili Vincono!";
-    headerColor = "text-indigo-500";
-    if (gameData.winMethod === 'guess') subTitle = "Mr. Wolf ha sbagliato la parola!";
-    else subTitle = "Avete smascherato il nemico!";
-  } else if (winner === 'mr_wolf') {
-    title = "Mr. Wolf Vince!";
-    headerColor = "text-amber-500";
-    subTitle = "Ha rubato la vittoria indovinando!";
-  } else if (winner === 'enemies') {
-    title = "I Nemici Vincono!";
-    headerColor = "text-rose-500";
-    subTitle = "Avete accusato un innocente!";
-  } else {
-    title = "L'Impostore Vince!";
-    headerColor = "text-rose-500";
-    subTitle = "Avete accusato la persona sbagliata!";
-  }
+  const getRoleContent = () => {
+    if (currentPlayer.role === 'MR_WOLF') {
+      return (
+        <>
+          <div className="w-24 h-24 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-amber-500/50">
+            <i className="fa-solid fa-dog text-5xl"></i>
+          </div>
+          <h3 className="text-4xl font-bungee text-amber-500 leading-tight">SEI MR. WOLF!</h3>
+          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Mimetizzati!</p>
+          {settings.showCategoryHint && (
+            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
+              <i className="fa-solid fa-eye mr-2"></i>
+              <strong>Categoria:</strong> {gameData.wordCategory}
+            </div>
+          )}
+          <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-200 leading-relaxed">
+             <strong>Super Potere:</strong> Se ti scoprono, avrai un'ultima possibilità per indovinare la parola e rubare la vittoria!
+          </div>
+        </>
+      );
+    }
 
-  const renderPlayerBadge = (label: string, name: string | undefined, color: 'rose' | 'amber' | 'indigo' | 'slate') => {
-    if (!name) return null;
-    const colors = {
-      rose: "bg-rose-500/10 border-rose-500/50 text-rose-400",
-      amber: "bg-amber-500/10 border-amber-500/50 text-amber-400",
-      indigo: "bg-indigo-500/10 border-indigo-500/50 text-indigo-400",
-      slate: "bg-slate-700/50 border-slate-600 text-slate-300"
-    };
+    if (currentPlayer.role === 'IMPOSTOR') {
+      return (
+        <>
+          <div className="w-24 h-24 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-rose-500/50">
+            <i className="fa-solid fa-user-secret text-5xl"></i>
+          </div>
+          <h3 className="text-4xl font-bungee text-rose-500 leading-tight">SEI L'IMPOSTORE!</h3>
+          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Ascolta bene e mimetizzati!</p>
+          {settings.showCategoryHint && (
+            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
+              <i className="fa-solid fa-eye mr-2"></i>
+              <strong>Categoria:</strong> {gameData.wordCategory}
+            </div>
+          )}
+        </>
+      );
+    }
 
     return (
-      <div className={`p-5 rounded-2xl border ${colors[color]} w-full flex justify-between items-center shadow-sm`}>
-        <span className="text-xs font-bold uppercase tracking-widest opacity-80">{label}</span>
-        <span className="font-bungee text-2xl">{name}</span>
-      </div>
+      <>
+        <div className="w-24 h-24 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-indigo-500/50">
+          <i className="fa-solid fa-key text-5xl"></i>
+        </div>
+        <h3 className="text-xl text-slate-400 uppercase tracking-widest font-bold">La Parola è:</h3>
+        <h3 className="text-5xl font-bungee text-indigo-400 mt-3 uppercase tracking-tight break-all px-2">{gameData.secretWord}</h3>
+        <p className="mt-6 text-slate-300 text-lg leading-relaxed">Dì una sola parola attinente senza svelarla troppo ai nemici!</p>
+      </>
     );
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in zoom-in duration-500">
-      <header className="text-center space-y-3">
-        <h1 className={`text-5xl font-bungee ${headerColor} leading-tight drop-shadow-lg`}>
-          {title}
-        </h1>
-        <p className="text-slate-400 font-bold text-base uppercase tracking-widest">
-          {isFinal ? "FINALISSIMA CONCLUSA" : subTitle}
-        </p>
-      </header>
+    <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
+      <div className="text-center space-y-3">
+        <h2 className="text-2xl font-bold text-slate-400 uppercase tracking-widest">Tocca a:</h2>
+        <h1 className="text-5xl font-bungee text-white drop-shadow-lg">{currentPlayer.name}</h1>
+      </div>
 
-      <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center space-y-6 text-center border-slate-700 shadow-xl">
-
-        <div className="w-full space-y-3">
-          {gameData.votedPlayer && (
-            renderPlayerBadge("Accusato", gameData.votedPlayer.name, 'slate')
-          )}
-          {renderPlayerBadge("Impostore", impostor?.name, 'rose')}
-          {renderPlayerBadge("Mr. Wolf", wolf?.name, 'amber')}
-        </div>
-
-        <div className="space-y-2 pt-6 border-t border-slate-700 w-full">
-          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">La parola segreta era:</p>
-          <h2 className="text-4xl font-bungee text-indigo-400 uppercase tracking-tight break-all">{gameData.secretWord}</h2>
-          <p className="text-slate-500 text-sm mt-1">Categoria: {gameData.wordCategory}</p>
-        </div>
-
-        {mode === 'TOURNAMENT' && (
-          <div className="w-full p-4 rounded-xl bg-slate-900/50 text-base text-slate-400 border border-slate-800">
-            Controlla la classifica per i punteggi!
+      <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center justify-center min-h-[400px] text-center space-y-8 relative overflow-hidden">
+        {!isRevealed ? (
+          <>
+            <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-2 shadow-inner">
+               <i className="fa-solid fa-fingerprint text-5xl text-indigo-500"></i>
+            </div>
+            <div className="w-full px-4 space-y-4">
+              <p className="text-slate-300 text-xl leading-relaxed">
+                Passa il telefono a <strong className="text-white">{currentPlayer.name}</strong>
+              </p>
+              <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+                <p className="text-indigo-400 font-bold text-lg">
+                  <strong>{currentPlayer.name}</strong>, quando sei pronto premi qui sotto!
+                </p>
+                <p className="text-slate-500 text-sm mt-1">Nessun altro deve guardare lo schermo</p>
+              </div>
+            </div>
+            <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">
+              <i className="fa-solid fa-eye mr-3"></i>Scopri il tuo Ruolo
+            </Button>
+          </>
+        ) : (
+          <div className="animate-in zoom-in duration-300 w-full flex flex-col items-center">
+            {getRoleContent()}
+            <div className="mt-10 w-full space-y-3">
+              <p className="text-slate-500 text-sm text-center">Hai memorizzato il tuo ruolo?</p>
+              {currentPlayerIndex < gameData.players.length - 1 ? (
+                <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
+                  <i className="fa-solid fa-arrow-right mr-2"></i>
+                  Clicca qui, poi passa il telefono a {gameData.players[currentPlayerIndex + 1].name}
+                </Button>
+              ) : (
+                <Button onClick={handleNext} className="text-lg py-4 w-full">
+                  <i className="fa-solid fa-play mr-2"></i>
+                  Ho capito! Inizia il Round
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="w-full space-y-4 pt-2">
-        <Button fullWidth size="lg" onClick={onNext} className="text-xl py-5">
-          {mode === 'TOURNAMENT' ? 'Vedi Classifica' : 'Nuova Partita'}
-        </Button>
-        <Button fullWidth variant="ghost" onClick={() => window.location.reload()} className="text-lg">Esci dal Gioco</Button>
+      <div className="flex gap-3">
+        {gameData.players.map((_, idx) => (
+          <div
+            key={idx}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              idx === currentPlayerIndex ? 'bg-indigo-500 w-8' : idx < currentPlayerIndex ? 'bg-indigo-500/40' : 'bg-slate-700'
+            }`}
+          ></div>
+        ))}
       </div>
     </div>
   );
 };
 
-export default ResultScreen;
+export default RevealScreen;
