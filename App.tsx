@@ -15,7 +15,6 @@ import InstructionsScreen from './components/InstructionsScreen';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
-  const [lastImpostorName, setLastImpostorName] = useState<string | null>(null);
   const [settings, setSettings] = useState<GameSettings>({
     players: INITIAL_NAMES,
     timerDuration: 300,
@@ -66,25 +65,8 @@ const App: React.FC = () => {
     const playerCount = newSettings.players.length;
     const availableIndices = Array.from({ length: playerCount }, (_, i) => i);
 
-    // Determine previous impostor to avoid immediate repeat (works for both single and tournament mode)
-    const prevImpostorName = existingPlayers?.find(p => p.role === 'IMPOSTOR')?.name ?? lastImpostorName;
-    const prevImpostorOriginalIdx = prevImpostorName !== null
-      ? newSettings.players.indexOf(prevImpostorName)
-      : -1;
-
-    // Build impostor candidate pool excluding the previous impostor when possible
-    const impostorCandidates = (prevImpostorOriginalIdx !== -1 && playerCount > 1)
-      ? availableIndices.filter(i => i !== prevImpostorOriginalIdx)
-      : availableIndices;
-
-    const shuffledImpostorCandidates = shuffleArray(impostorCandidates);
-    const impostorOriginalIdx = shuffledImpostorCandidates[0];
-
-    // Build full role index order: chosen impostor first, then the rest shuffled
-    const shuffledRoleIndices = [
-      impostorOriginalIdx,
-      ...shuffleArray(availableIndices.filter(i => i !== impostorOriginalIdx))
-    ];
+    // Shuffle indices for role assignment
+    const shuffledRoleIndices = shuffleArray(availableIndices);
 
     const roles: Role[] = new Array(playerCount).fill('CIVILIAN');
 
@@ -192,10 +174,6 @@ const App: React.FC = () => {
     if (!gameData) return;
 
     const updatedPlayers = calculateScores(winner, method, gameData);
-
-    // Track the impostor so the next game won't pick the same person
-    const impostorPlayer = gameData.players.find(p => p.role === 'IMPOSTOR');
-    setLastImpostorName(impostorPlayer?.name ?? null);
 
     setGameData({
       ...gameData,
