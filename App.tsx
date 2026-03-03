@@ -13,8 +13,26 @@ import LeaderboardScreen from './components/LeaderboardScreen';
 import MrWolfScreen from './components/MrWolfScreen';
 import InstructionsScreen from './components/InstructionsScreen';
 
+const USED_WORDS_KEY = 'impostore_used_words';
+
+const loadUsedWordsFromStorage = (): string[] => {
+  try {
+    const stored = localStorage.getItem(USED_WORDS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveUsedWordsToStorage = (words: string[]) => {
+  try {
+    localStorage.setItem(USED_WORDS_KEY, JSON.stringify(words));
+  } catch {}
+};
+
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
+  const [globalUsedWords, setGlobalUsedWords] = useState<string[]>(loadUsedWordsFromStorage);
   const [settings, setSettings] = useState<GameSettings>({
     players: INITIAL_NAMES,
     timerDuration: 300,
@@ -26,16 +44,20 @@ const App: React.FC = () => {
   });
   const [gameData, setGameData] = useState<GameData | null>(null);
 
-  // Pick a random word avoiding already used words in this tournament
-  const pickWord = (selectedCategories: string[], usedWords: string[]): { word: string; category: string } => {
+  // Pick a random word avoiding already used words (both in-session and across sessions)
+  const pickWord = (selectedCategories: string[], sessionUsedWords: string[]): { word: string; category: string; resetGlobal: boolean } => {
     const availableCategories = WORD_CATEGORIES.filter(c => selectedCategories.includes(c.name));
     const allWords = availableCategories.flatMap(c => c.words.map(w => ({ word: w, category: c.name })));
-    const unused = allWords.filter(w => !usedWords.includes(w.word));
 
-    // If all words used, reset pool
-    const pool = unused.length > 0 ? unused : allWords;
+    // Merge session used words with globally persisted used words
+    const allUsed = Array.from(new Set([...globalUsedWords, ...sessionUsedWords]));
+    const unused = allWords.filter(w => !allUsed.includes(w.word));
+
+    // If all words used, reset global pool
+    const resetGlobal = unused.length === 0;
+    const pool = resetGlobal ? allWords : unused;
     const picked = pool[Math.floor(Math.random() * pool.length)];
-    return picked;
+    return { ...picked, resetGlobal };
   };
 
   // Shuffle array utility (Fisher-Yates)
@@ -58,8 +80,13 @@ const App: React.FC = () => {
   ) => {
     setSettings(newSettings);
 
-    // Pick a random word from selected categories, avoiding repeats
-    const { word, category } = pickWord(newSettings.selectedCategories, previousUsedWords);
+    // Pick a random word from selected categories, avoiding repeats across sessions
+    const { word, category, resetGlobal } = pickWord(newSettings.selectedCategories, previousUsedWords);
+
+    // Update global used words in state and localStorage
+    const newGlobalUsedWords = resetGlobal ? [word] : Array.from(new Set([...globalUsedWords, word]));
+    setGlobalUsedWords(newGlobalUsedWords);
+    saveUsedWordsToStorage(newGlobalUsedWords);
 
     // Role Assignment Logic
     const playerCount = newSettings.players.length;
