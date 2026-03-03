@@ -112,7 +112,7 @@ const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinis
               {currentPlayerIndex < gameData.players.length - 1 ? (
                 <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
                   <i className="fa-solid fa-arrow-right mr-2"></i>
-                  Ho capito! Passo il telefono a {gameData.players[currentPlayerIndex + 1].name}
+                  Clicca qui, poi passa il telefono a {gameData.players[currentPlayerIndex + 1].name}
                 </Button>
               ) : (
                 <Button onClick={handleNext} className="text-lg py-4 w-full">
