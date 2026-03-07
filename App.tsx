@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameState, Player, GameSettings, GameData, Role, EnemyConfig, GroupTournamentState } from './types';
 import { WORD_CATEGORIES, INITIAL_NAMES } from './constants';
 import { Button } from './components/ui/Button';
@@ -489,12 +489,32 @@ const App: React.FC = () => {
 };
 
 // Voting screen with confirmation
+const DISCUSSION_DURATION = 120; // 2 minuti
+
 const VotingScreen: React.FC<{
   gameData: GameData;
   settings: GameSettings;
   onPlayerVoted: (player: Player) => void;
 }> = ({ gameData, settings, onPlayerVoted }) => {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [discussionTime, setDiscussionTime] = useState(DISCUSSION_DURATION);
+
+  useEffect(() => {
+    if (discussionTime <= 0) return;
+    const timer = setInterval(() => {
+      setDiscussionTime((prev) => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="w-full flex flex-col h-full animate-in fade-in zoom-in duration-300">
@@ -509,6 +529,18 @@ const VotingScreen: React.FC<{
             ? "Basta trovare uno dei nemici per vincere! Scegliete bene."
             : "Toccate il nome del giocatore che sospettate."}
         </p>
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <i className={`fa-solid fa-comments text-xl ${discussionTime <= 30 ? 'text-rose-400' : 'text-indigo-400'}`}></i>
+          <div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Discussione</p>
+            <div className={`text-3xl font-bungee ${discussionTime <= 30 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
+              {formatTime(discussionTime)}
+            </div>
+          </div>
+          {discussionTime === 0 && (
+            <span className="ml-2 text-rose-400 font-bold text-sm animate-pulse">Tempo scaduto!</span>
+          )}
+        </div>
       </div>
 
       <div className="glass flex-1 p-4 rounded-3xl overflow-y-auto custom-scrollbar flex flex-col gap-3">
