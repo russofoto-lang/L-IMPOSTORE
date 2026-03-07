@@ -24,6 +24,7 @@ export interface Player {
   role: Role;
   isRevealed: boolean;
   score: number;
+  impostorWins: number;
 }
 
 export interface GameSettings {
@@ -49,18 +50,45 @@ export interface GameData {
   usedWords: string[];
 }
 
+export interface WildCardCandidate {
+  name: string;
+  groupScore: number;
+  groupRank: number;
+  impostorWins: number;
+}
+
 export interface GroupTournamentState {
   phase: 'GROUPS' | 'FINAL';
   groups: string[][];           // all groups (player names)
   currentGroupIndex: number;    // which group is playing now
   groupRounds: number;          // rounds per group
   finalRounds: number;          // rounds in the final
-  advancersPerGroup: number[];  // how many advance from each group
-  // players who advanced from completed groups (name + their group score)
+  advancersPerGroup: number[];  // direct advances per group
   finalists: { name: string; groupScore: number }[];
-  // all players with their results for display
   allGroupResults: {
     groupIndex: number;
     players: { name: string; score: number }[];
   }[];
+  // Wild card qualification system
+  directQualifiers: { name: string; groupScore: number; impostorWins: number }[];
+  wildCardPool: WildCardCandidate[];
+  wildCardsNeeded: number;
+  numGroups: number;
+}
+
+// Shared via localStorage for dashboard projection
+export interface DashboardState {
+  gameState: string;
+  tournamentPhase: 'GROUPS' | 'FINAL' | null;
+  groupLabel: string;
+  roundLabel: string;
+  currentPlayers: { name: string; score: number }[];
+  allGroups: string[][];
+  currentGroupIndex: number;
+  directQualifiers: { name: string; groupScore: number }[];
+  wildCardPool: WildCardCandidate[];
+  wildCardsNeeded: number;
+  finalists: { name: string; groupScore: number }[];
+  numGroups: number;
+  timestamp: number;
 }
