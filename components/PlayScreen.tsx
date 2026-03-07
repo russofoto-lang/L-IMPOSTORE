@@ -73,7 +73,7 @@ const PlayScreen: React.FC<PlayScreenProps> = ({ gameData, settings, onVote, onE
     <div className="w-full flex flex-col space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="glass p-6 rounded-3xl text-center border-indigo-500/30 flex justify-between items-center shadow-lg">
         <div>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Tempo</p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Gara</p>
           <div className={`text-4xl font-bungee ${timeLeft < 30 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
             {formatTime(timeLeft)}
           </div>

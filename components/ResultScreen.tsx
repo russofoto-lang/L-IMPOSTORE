@@ -1,142 +1,140 @@
 
-import React, { useState } from 'react';
-import { GameData, GameSettings } from '../types';
+import React from 'react';
+import { GameData, GameMode } from '../types';
 import { Button } from './ui/Button';
 
-interface RevealScreenProps {
+interface ResultScreenProps {
   gameData: GameData;
-  settings: GameSettings;
-  onFinish: () => void;
+  mode: GameMode;
+  onNext: () => void;
 }
 
-const RevealScreen: React.FC<RevealScreenProps> = ({ gameData, settings, onFinish }) => {
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [isRevealed, setIsRevealed] = useState(false);
+const ResultScreen: React.FC<ResultScreenProps> = ({ gameData, mode, onNext }) => {
+  const { winner, winMethod, votedPlayer, secretWord, players } = gameData;
 
-  const currentPlayer = gameData.players[currentPlayerIndex];
+  const civiliansWon = winner === 'players';
+  const impostorWon = winner === 'impostor';
+  const wolfWon = winner === 'mr_wolf';
+  const enemiesWon = winner === 'enemies';
 
-  const handleNext = () => {
-    if (currentPlayerIndex < gameData.players.length - 1) {
-      setCurrentPlayerIndex(currentPlayerIndex + 1);
-      setIsRevealed(false);
-    } else {
-      onFinish();
-    }
+  const getWinnerConfig = () => {
+    if (civiliansWon) return {
+      icon: 'fa-shield-halved',
+      iconColor: 'text-indigo-400',
+      bgColor: 'bg-indigo-500/20',
+      borderColor: 'border-indigo-500/50',
+      title: 'I Civili Vincono!',
+      titleColor: 'text-indigo-400',
+      subtitle: winMethod === 'guess'
+        ? "Mr. Wolf non ha indovinato la parola."
+        : votedPlayer
+        ? `${votedPlayer.name} era il nemico ed è stato eliminato!`
+        : 'I civili hanno trovato il nemico!'
+    };
+    if (wolfWon) return {
+      icon: 'fa-dog',
+      iconColor: 'text-amber-400',
+      bgColor: 'bg-amber-500/20',
+      borderColor: 'border-amber-500/50',
+      title: 'Mr. Wolf Vince!',
+      titleColor: 'text-amber-400',
+      subtitle: winMethod === 'guess'
+        ? `Ha indovinato la parola! Che intuizione!`
+        : 'Ha eliminato un civile!'
+    };
+    if (impostorWon) return {
+      icon: 'fa-user-secret',
+      iconColor: 'text-rose-400',
+      bgColor: 'bg-rose-500/20',
+      borderColor: 'border-rose-500/50',
+      title: "L'Impostore Vince!",
+      titleColor: 'text-rose-400',
+      subtitle: votedPlayer
+        ? `${votedPlayer.name} era innocente ed è stato eliminato!`
+        : "L'impostore è rimasto nell'ombra!"
+    };
+    if (enemiesWon) return {
+      icon: 'fa-user-group',
+      iconColor: 'text-purple-400',
+      bgColor: 'bg-purple-500/20',
+      borderColor: 'border-purple-500/50',
+      title: 'I Nemici Vincono!',
+      titleColor: 'text-purple-400',
+      subtitle: votedPlayer
+        ? `${votedPlayer.name} era innocente ed è stato eliminato!`
+        : 'I nemici hanno avuto la meglio!'
+    };
+    return {
+      icon: 'fa-question',
+      iconColor: 'text-slate-400',
+      bgColor: 'bg-slate-500/20',
+      borderColor: 'border-slate-500/50',
+      title: 'Fine Round',
+      titleColor: 'text-white',
+      subtitle: ''
+    };
   };
 
-  const getRoleContent = () => {
-    if (currentPlayer.role === 'MR_WOLF') {
-      return (
-        <>
-          <div className="w-24 h-24 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-amber-500/50">
-            <i className="fa-solid fa-dog text-5xl"></i>
-          </div>
-          <h3 className="text-4xl font-bungee text-amber-500 leading-tight">SEI MR. WOLF!</h3>
-          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Mimetizzati!</p>
-          {settings.showCategoryHint && (
-            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
-              <i className="fa-solid fa-eye mr-2"></i>
-              <strong>Categoria:</strong> {gameData.wordCategory}
-            </div>
-          )}
-          <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-200 leading-relaxed">
-             <strong>Super Potere:</strong> Se ti scoprono, avrai un'ultima possibilità per indovinare la parola e rubare la vittoria!
-          </div>
-        </>
-      );
-    }
+  const cfg = getWinnerConfig();
 
-    if (currentPlayer.role === 'IMPOSTOR') {
-      return (
-        <>
-          <div className="w-24 h-24 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-rose-500/50">
-            <i className="fa-solid fa-user-secret text-5xl"></i>
-          </div>
-          <h3 className="text-4xl font-bungee text-rose-500 leading-tight">SEI L'IMPOSTORE!</h3>
-          <p className="mt-5 text-slate-300 text-lg">Non conosci la parola segreta. Ascolta bene e mimetizzati!</p>
-          {settings.showCategoryHint && (
-            <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-sm text-indigo-200 leading-relaxed">
-              <i className="fa-solid fa-eye mr-2"></i>
-              <strong>Categoria:</strong> {gameData.wordCategory}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    return (
-      <>
-        <div className="w-24 h-24 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-indigo-500/50">
-          <i className="fa-solid fa-key text-5xl"></i>
-        </div>
-        <h3 className="text-xl text-slate-400 uppercase tracking-widest font-bold">La Parola è:</h3>
-        <h3 className="text-5xl font-bungee text-indigo-400 mt-3 uppercase tracking-tight break-all px-2">{gameData.secretWord}</h3>
-        <p className="mt-6 text-slate-300 text-lg leading-relaxed">Dì una sola parola attinente senza svelarla troppo ai nemici!</p>
-      </>
-    );
-  };
+  const nextLabel = mode === 'SINGLE'
+    ? 'Nuova Partita'
+    : 'Vedi Classifica';
 
   return (
-    <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
-      <div className="text-center space-y-3">
-        <h2 className="text-2xl font-bold text-slate-400 uppercase tracking-widest">Tocca a:</h2>
-        <h1 className="text-5xl font-bungee text-white drop-shadow-lg">{currentPlayer.name}</h1>
+    <div className="w-full flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in duration-400 pb-6">
+      {/* Winner banner */}
+      <div className={`glass w-full p-7 rounded-3xl text-center border ${cfg.borderColor} ${cfg.bgColor} space-y-3`}>
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${cfg.bgColor} border ${cfg.borderColor}`}>
+          <i className={`fa-solid ${cfg.icon} text-4xl ${cfg.iconColor}`}></i>
+        </div>
+        <h1 className={`text-4xl font-bungee ${cfg.titleColor} drop-shadow`}>{cfg.title}</h1>
+        <p className="text-slate-300 text-base leading-relaxed">{cfg.subtitle}</p>
       </div>
 
-      <div className="glass w-full p-8 rounded-[2.5rem] flex flex-col items-center justify-center min-h-[400px] text-center space-y-8 relative overflow-hidden">
-        {!isRevealed ? (
-          <>
-            <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-2 shadow-inner">
-               <i className="fa-solid fa-fingerprint text-5xl text-indigo-500"></i>
-            </div>
-            <div className="w-full px-4 space-y-4">
-              <p className="text-slate-300 text-xl leading-relaxed">
-                Passa il telefono a <strong className="text-white">{currentPlayer.name}</strong>
-              </p>
-              <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
-                <p className="text-indigo-400 font-bold text-lg">
-                  <strong>{currentPlayer.name}</strong>, quando sei pronto premi qui sotto!
-                </p>
-                <p className="text-slate-500 text-sm mt-1">Nessun altro deve guardare lo schermo</p>
-              </div>
-            </div>
-            <Button size="lg" onClick={() => setIsRevealed(true)} className="text-xl px-10 py-5">
-              <i className="fa-solid fa-eye mr-3"></i>Scopri il tuo Ruolo
-            </Button>
-          </>
-        ) : (
-          <div className="animate-in zoom-in duration-300 w-full flex flex-col items-center">
-            {getRoleContent()}
-            <div className="mt-10 w-full space-y-3">
-              <p className="text-slate-500 text-sm text-center">Hai memorizzato il tuo ruolo?</p>
-              {currentPlayerIndex < gameData.players.length - 1 ? (
-                <Button variant="secondary" onClick={handleNext} className="text-lg py-4 w-full">
-                  <i className="fa-solid fa-arrow-right mr-2"></i>
-                  Clicca qui, poi passa il telefono a {gameData.players[currentPlayerIndex + 1].name}
-                </Button>
-              ) : (
-                <Button onClick={handleNext} className="text-lg py-4 w-full">
-                  <i className="fa-solid fa-play mr-2"></i>
-                  Ho capito! Inizia il Round
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+      {/* Secret word reveal */}
+      <div className="glass w-full p-5 rounded-3xl text-center space-y-1">
+        <p className="text-slate-400 text-sm uppercase tracking-widest font-bold">La parola segreta era</p>
+        <p className="text-4xl font-bungee text-indigo-400 uppercase tracking-tight">{secretWord}</p>
       </div>
 
-      <div className="flex gap-3">
-        {gameData.players.map((_, idx) => (
+      {/* Role reveals */}
+      <div className="glass w-full p-4 rounded-3xl space-y-2">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Ruoli rivelati</h3>
+        {players.map((p) => (
           <div
-            key={idx}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              idx === currentPlayerIndex ? 'bg-indigo-500 w-8' : idx < currentPlayerIndex ? 'bg-indigo-500/40' : 'bg-slate-700'
+            key={p.id}
+            className={`flex items-center p-3 rounded-xl border ${
+              p.role === 'IMPOSTOR' ? 'bg-rose-600/15 border-rose-600/40' :
+              p.role === 'MR_WOLF' ? 'bg-amber-600/15 border-amber-600/40' :
+              'bg-slate-800/50 border-slate-700/50'
             }`}
-          ></div>
+          >
+            <i className={`fa-solid ${
+              p.role === 'IMPOSTOR' ? 'fa-user-secret text-rose-400' :
+              p.role === 'MR_WOLF' ? 'fa-dog text-amber-400' :
+              'fa-user text-indigo-400'
+            } w-5 mr-3`}></i>
+            <span className={`flex-grow font-medium ${
+              p.role !== 'CIVILIAN' ? 'text-white font-bold' : 'text-slate-300'
+            }`}>{p.name}</span>
+            <span className={`text-xs uppercase font-bold tracking-wide ${
+              p.role === 'IMPOSTOR' ? 'text-rose-400' :
+              p.role === 'MR_WOLF' ? 'text-amber-400' :
+              'text-slate-500'
+            }`}>
+              {p.role === 'IMPOSTOR' ? 'Impostore' : p.role === 'MR_WOLF' ? 'Mr. Wolf' : 'Civile'}
+            </span>
+          </div>
         ))}
       </div>
+
+      <Button fullWidth size="lg" onClick={onNext} className="text-xl py-5">
+        {nextLabel}
+        <i className="fa-solid fa-arrow-right ml-3"></i>
+      </Button>
     </div>
   );
 };
 
-export default RevealScreen;
+export default ResultScreen;

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { GameState, Player, GameSettings, GameData, Role, EnemyConfig } from './types';
+import React, { useState, useEffect } from 'react';
+import { GameState, Player, GameSettings, GameData, Role, EnemyConfig, GroupTournamentState, WildCardCandidate, DashboardState } from './types';
 import { WORD_CATEGORIES, INITIAL_NAMES } from './constants';
 import { Button } from './components/ui/Button';
 
@@ -12,8 +12,11 @@ import ResultScreen from './components/ResultScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import MrWolfScreen from './components/MrWolfScreen';
 import InstructionsScreen from './components/InstructionsScreen';
+import GroupLobbyScreen from './components/GroupLobbyScreen';
+import TournamentWinnersScreen from './components/TournamentWinnersScreen';
 
 const USED_WORDS_KEY = 'impostore_used_words';
+const DASHBOARD_KEY = 'impostore_dashboard';
 
 const loadUsedWordsFromStorage = (): string[] => {
   try {
@@ -30,6 +33,58 @@ const saveUsedWordsToStorage = (words: string[]) => {
   } catch {}
 };
 
+// ── Group splitting ────────────────────────────────────────────────────────────
+// Splits N players into groups of 4 or 5. Maximizes groups of 5.
+const splitIntoGroups = (playerNames: string[], shuffleArray: <T>(a: T[]) => T[]): string[][] => {
+  const shuffled = shuffleArray([...playerNames]);
+  const n = shuffled.length;
+
+  let bestA = -1, bestB = -1;
+  for (let b = Math.floor(n / 5); b >= 0; b--) {
+    const remaining = n - 5 * b;
+    if (remaining >= 0 && remaining % 4 === 0) {
+      bestA = remaining / 4;
+      bestB = b;
+      break;
+    }
+  }
+
+  let sizes: number[];
+  if (bestA >= 0) {
+    sizes = [...Array(bestB).fill(5), ...Array(bestA).fill(4)];
+  } else {
+    const numGroups = Math.ceil(n / 5);
+    const base = Math.floor(n / numGroups);
+    const extra = n % numGroups;
+    sizes = Array.from({ length: numGroups }, (_, i) => base + (i < extra ? 1 : 0));
+  }
+
+  const groups: string[][] = [];
+  let start = 0;
+  for (const size of sizes) {
+    groups.push(shuffled.slice(start, start + size));
+    start += size;
+  }
+  return groups;
+};
+
+// ── Qualification rules ────────────────────────────────────────────────────────
+// How many players directly advance from each group:
+// 2 groups → 2 direct each; 3-4 groups → 1 direct each
+const calcDirectAdvancers = (numGroups: number): number => (numGroups <= 2 ? 2 : 1);
+
+// Wild card rules per spec:
+// 2 groups: best 3rd place (1 wild card)
+// 3 groups: 2 best 2nd places
+// 4 groups: best 2nd place (1 wild card)
+// 5+ groups: no wild cards needed (5+ direct qualifiers already)
+const calcWildCardInfo = (numGroups: number): { count: number } => {
+  if (numGroups === 2) return { count: 1 };
+  if (numGroups === 3) return { count: 2 };
+  if (numGroups === 4) return { count: 1 };
+  return { count: 0 };
+};
+
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
   const [globalUsedWords, setGlobalUsedWords] = useState<string[]>(loadUsedWordsFromStorage);
@@ -43,17 +98,53 @@ const App: React.FC = () => {
     showCategoryHint: false
   });
   const [gameData, setGameData] = useState<GameData | null>(null);
+  const [groupTournamentState, setGroupTournamentState] = useState<GroupTournamentState | null>(null);
 
-  // Pick a random word avoiding already used words (both in-session and across sessions)
+  // ── Dashboard sync: localStorage (same device) + /_sync endpoint (cross-device) ──
+  useEffect(() => {
+    const groupLabel = groupTournamentState
+      ? groupTournamentState.phase === 'FINAL'
+        ? 'Finale'
+        : `Girone ${String.fromCharCode(65 + groupTournamentState.currentGroupIndex)} / ${groupTournamentState.groups.length}`
+      : '';
+    const ds: DashboardState = {
+      gameState: gameState,
+      tournamentPhase: groupTournamentState?.phase ?? null,
+      groupLabel,
+      roundLabel: gameData
+        ? `Round ${gameData.currentRound} / ${groupTournamentState?.phase === 'FINAL' ? groupTournamentState.finalRounds : (groupTournamentState?.groupRounds ?? settings.totalRounds)}`
+        : '',
+      currentPlayers: gameData
+        ? [...gameData.players]
+            .sort((a, b) => b.score - a.score)
+            .map(p => ({ name: p.name, score: p.score }))
+        : [],
+      allGroups: groupTournamentState?.groups ?? [],
+      currentGroupIndex: groupTournamentState?.currentGroupIndex ?? 0,
+      directQualifiers: groupTournamentState?.directQualifiers ?? [],
+      wildCardPool: groupTournamentState?.wildCardPool ?? [],
+      wildCardsNeeded: groupTournamentState?.wildCardsNeeded ?? 0,
+      finalists: groupTournamentState?.finalists ?? [],
+      numGroups: groupTournamentState?.numGroups ?? 0,
+      timestamp: Date.now(),
+    };
+    const json = JSON.stringify(ds);
+    // Same device/tab: localStorage + BroadcastChannel
+    try { localStorage.setItem(DASHBOARD_KEY, json); } catch {}
+    try { new BroadcastChannel(DASHBOARD_KEY).postMessage(json); } catch {}
+    // Cross-device (same WiFi): POST to Vite dev server in-memory endpoint
+    fetch('/_sync', { method: 'POST', body: json, headers: { 'Content-Type': 'application/json' } })
+      .catch(() => {}); // silent fail in production/offline
+  }, [gameState, gameData, groupTournamentState, settings.totalRounds]);
+
+  // Pick a random word avoiding already used words
   const pickWord = (selectedCategories: string[], sessionUsedWords: string[]): { word: string; category: string; resetGlobal: boolean } => {
     const availableCategories = WORD_CATEGORIES.filter(c => selectedCategories.includes(c.name));
     const allWords = availableCategories.flatMap(c => c.words.map(w => ({ word: w, category: c.name })));
 
-    // Merge session used words with globally persisted used words
     const allUsed = Array.from(new Set([...globalUsedWords, ...sessionUsedWords]));
     const unused = allWords.filter(w => !allUsed.includes(w.word));
 
-    // If all words used, reset global pool
     const resetGlobal = unused.length === 0;
     const pool = resetGlobal ? allWords : unused;
     const picked = pool[Math.floor(Math.random() * pool.length)];
@@ -80,19 +171,14 @@ const App: React.FC = () => {
   ) => {
     setSettings(newSettings);
 
-    // Pick a random word from selected categories, avoiding repeats across sessions
     const { word, category, resetGlobal } = pickWord(newSettings.selectedCategories, previousUsedWords);
 
-    // Update global used words in state and localStorage
     const newGlobalUsedWords = resetGlobal ? [word] : Array.from(new Set([...globalUsedWords, word]));
     setGlobalUsedWords(newGlobalUsedWords);
     saveUsedWordsToStorage(newGlobalUsedWords);
 
-    // Role Assignment Logic
     const playerCount = newSettings.players.length;
     const availableIndices = Array.from({ length: playerCount }, (_, i) => i);
-
-    // Shuffle indices for role assignment
     const shuffledRoleIndices = shuffleArray(availableIndices);
 
     const roles: Role[] = new Array(playerCount).fill('CIVILIAN');
@@ -103,11 +189,9 @@ const App: React.FC = () => {
     } else if (newSettings.enemyConfig === 'WOLF_ONLY') {
        roles[shuffledRoleIndices[0]] = 'MR_WOLF';
     } else {
-       // Default Impostor Only
        roles[shuffledRoleIndices[0]] = 'IMPOSTOR';
     }
 
-    // Shuffle play order
     const shuffledPlayerOrder = shuffleArray(Array.from({ length: playerCount }, (_, i) => i));
 
     const players: Player[] = shuffledPlayerOrder.map((originalIndex, newIndex) => {
@@ -118,7 +202,8 @@ const App: React.FC = () => {
         name,
         role: roles[originalIndex],
         isRevealed: false,
-        score: existingPlayer ? existingPlayer.score : 0
+        score: existingPlayer ? existingPlayer.score : 0,
+        impostorWins: existingPlayer ? (existingPlayer.impostorWins || 0) : 0
       };
     });
 
@@ -135,6 +220,154 @@ const App: React.FC = () => {
     setGameState(GameState.REVEAL);
   };
 
+  // ─── GROUP TOURNAMENT ─────────────────────────────────────────────────────
+
+  const startGroupTournament = (newSettings: GameSettings) => {
+    setSettings(newSettings);
+    const groups = splitIntoGroups(newSettings.players, shuffleArray);
+    const numGroups = groups.length;
+    const directPerGroup = calcDirectAdvancers(numGroups);
+    const { count: wildCardsNeeded } = calcWildCardInfo(numGroups);
+
+    const gt: GroupTournamentState = {
+      phase: 'GROUPS',
+      groups,
+      currentGroupIndex: 0,
+      groupRounds: newSettings.totalRounds,
+      finalRounds: Math.max(2, newSettings.totalRounds),
+      advancersPerGroup: Array(numGroups).fill(directPerGroup),
+      finalists: [],
+      allGroupResults: [],
+      directQualifiers: [],
+      wildCardPool: [],
+      wildCardsNeeded,
+      numGroups,
+    };
+    setGroupTournamentState(gt);
+    setGameState(GameState.GROUP_LOBBY);
+  };
+
+  // Called when user presses "Inizia Girone" on the lobby screen
+  const startCurrentGroup = () => {
+    if (!groupTournamentState) return;
+    const { groups, currentGroupIndex, groupRounds, phase, finalRounds } = groupTournamentState;
+    const groupPlayers = groups[currentGroupIndex];
+    const rounds = phase === 'FINAL' ? finalRounds : groupRounds;
+    const groupSettings: GameSettings = {
+      ...settings,
+      players: groupPlayers,
+      mode: 'TOURNAMENT',
+      totalRounds: rounds,
+      enemyConfig: groupPlayers.length < 5 ? 'IMPOSTOR_ONLY' : settings.enemyConfig
+    };
+    startGame(groupSettings, undefined, 1, false, []);
+  };
+
+  const handleGroupTournamentResultNext = () => {
+    setGameState(GameState.LEADERBOARD);
+  };
+
+  // Called when user clicks "Avanza" on the leaderboard after a group finishes
+  const advanceGroupTournament = () => {
+    if (!gameData || !groupTournamentState) return;
+    const {
+      groups, currentGroupIndex, advancersPerGroup, phase,
+      finalists, allGroupResults, directQualifiers, wildCardPool, wildCardsNeeded
+    } = groupTournamentState;
+
+    // Sort by score desc, impostorWins desc, random
+    const sorted = [...gameData.players].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if ((b.impostorWins || 0) !== (a.impostorWins || 0)) return (b.impostorWins || 0) - (a.impostorWins || 0);
+      return Math.random() - 0.5;
+    });
+
+    const groupResult = {
+      groupIndex: currentGroupIndex,
+      players: sorted.map(p => ({ name: p.name, score: p.score }))
+    };
+    const newAllGroupResults = [...allGroupResults, groupResult];
+
+    if (phase === 'FINAL') {
+      // Tournament is over — show winners
+      const winners = sorted.map(p => ({ name: p.name, groupScore: p.score }));
+      setGroupTournamentState(prev => prev ? {
+        ...prev,
+        allGroupResults: newAllGroupResults,
+        finalists: winners
+      } : prev);
+      setGameState(GameState.TOURNAMENT_WINNERS);
+      return;
+    }
+
+    // Groups phase: collect direct qualifiers + wild card candidates
+    const directCount = advancersPerGroup[currentGroupIndex];
+    const directFromGroup = sorted.slice(0, directCount).map(p => ({
+      name: p.name,
+      groupScore: p.score,
+      impostorWins: p.impostorWins || 0
+    }));
+
+    // Wild card candidates: the players just below the direct cut
+    const wildFromGroup: WildCardCandidate[] = sorted.slice(directCount, directCount + 1).map(p => ({
+      name: p.name,
+      groupScore: p.score,
+      groupRank: directCount + 1,
+      impostorWins: p.impostorWins || 0
+    }));
+
+    const newDirectQualifiers = [...directQualifiers, ...directFromGroup];
+    const newWildCardPool = [...wildCardPool, ...wildFromGroup];
+
+    const nextGroupIndex = currentGroupIndex + 1;
+    const allGroupsDone = nextGroupIndex >= groups.length;
+
+    if (allGroupsDone) {
+      // Select wild cards: sort by groupScore desc, impostorWins desc, random
+      const sortedWild = [...newWildCardPool].sort((a, b) => {
+        if (b.groupScore !== a.groupScore) return b.groupScore - a.groupScore;
+        if (b.impostorWins !== a.impostorWins) return b.impostorWins - a.impostorWins;
+        return Math.random() - 0.5;
+      });
+      const selectedWild = sortedWild.slice(0, wildCardsNeeded);
+
+      const allFinalists = [
+        ...newDirectQualifiers.map(f => ({ name: f.name, groupScore: f.groupScore })),
+        ...selectedWild.map(f => ({ name: f.name, groupScore: f.groupScore }))
+      ];
+
+      // Start final round
+      const finalistNames = allFinalists.map(f => f.name);
+      const finalGroups = splitIntoGroups(finalistNames, shuffleArray);
+      const newGt: GroupTournamentState = {
+        ...groupTournamentState,
+        phase: 'FINAL',
+        groups: finalGroups,
+        currentGroupIndex: 0,
+        advancersPerGroup: finalGroups.map(g => Math.min(2, g.length)),
+        finalists: allFinalists,
+        allGroupResults: newAllGroupResults,
+        directQualifiers: newDirectQualifiers,
+        wildCardPool: newWildCardPool,
+        numGroups: finalGroups.length,
+      };
+      setGroupTournamentState(newGt);
+      setGameState(GameState.GROUP_LOBBY);
+    } else {
+      setGroupTournamentState(prev => prev ? {
+        ...prev,
+        currentGroupIndex: nextGroupIndex,
+        finalists,
+        directQualifiers: newDirectQualifiers,
+        wildCardPool: newWildCardPool,
+        allGroupResults: newAllGroupResults
+      } : prev);
+      setGameState(GameState.GROUP_LOBBY);
+    }
+  };
+
+  // ─── REGULAR GAME FLOW ────────────────────────────────────────────────────
+
   const finishReveal = () => {
     setGameState(GameState.PLAYING);
   };
@@ -143,28 +376,20 @@ const App: React.FC = () => {
     setGameState(GameState.VOTING);
   };
 
-  // Logic to handle vote outcome: Player selection
   const handlePlayerVoted = (votedPlayer: Player) => {
     if (!gameData) return;
-
-    // Store the voted player
     setGameData(prev => prev ? { ...prev, votedPlayer } : prev);
-
     if (votedPlayer.role === 'MR_WOLF') {
-       // Wolf Caught -> Last Chance
        setGameState(GameState.WOLF_GUESS);
     } else if (votedPlayer.role === 'IMPOSTOR') {
-       // Impostor Caught -> Civilians Win
        endGame('players', 'vote', votedPlayer);
     } else {
-       // Civilian Caught -> Enemies Win
        const winner = settings.enemyConfig === 'WOLF_ONLY' ? 'mr_wolf' :
                       settings.enemyConfig === 'BOTH' ? 'enemies' : 'impostor';
        endGame(winner, 'vote', votedPlayer);
     }
   };
 
-  // Logic for Mr Wolf guessing result
   const handleWolfGuess = (correct: boolean) => {
     if (correct) {
       endGame('mr_wolf', 'guess');
@@ -173,35 +398,52 @@ const App: React.FC = () => {
     }
   };
 
-  const calculateScores = (winner: 'players' | 'impostor' | 'mr_wolf' | 'enemies', method: 'vote' | 'guess' | 'time', currentData: GameData): Player[] => {
-    if (settings.mode !== 'TOURNAMENT') return currentData.players;
+  // ── Scoring (Anti-Pareggio) ───────────────────────────────────────────────
+  // Vittoria Villaggio:  +3 civili  | Bonus Fiuto:      +1 se votano l'impostore
+  // Vittoria Impostore:  +5 nemico  | Bonus Infiltrato: +2 se il nemico non è votato
+  const calculateScores = (
+    winner: 'players' | 'impostor' | 'mr_wolf' | 'enemies',
+    method: 'vote' | 'guess' | 'time',
+    currentData: GameData
+  ): Player[] => {
+    if (settings.mode === 'SINGLE') return currentData.players;
+
+    const votedIsEnemy =
+      currentData.votedPlayer?.role === 'IMPOSTOR' ||
+      currentData.votedPlayer?.role === 'MR_WOLF';
+    const hasVote = !!currentData.votedPlayer;
+    const multiplier = currentData.isFinalRound ? 2 : 1;
 
     return currentData.players.map(p => {
-      let pointsToAdd = 0;
-      const multiplier = currentData.isFinalRound ? 2 : 1;
+      let pts = 0;
+      let impostorWinAdd = 0;
 
       if (winner === 'players') {
-        if (p.role === 'CIVILIAN') pointsToAdd = 100;
-      } else if (winner === 'mr_wolf') {
-        // Mr. Wolf solo win (guessed the word)
-        if (p.role === 'MR_WOLF') pointsToAdd = 500;
-      } else if (winner === 'enemies') {
-        // Both enemies win (civilian voted out in BOTH mode)
-        if (p.role === 'IMPOSTOR' || p.role === 'MR_WOLF') pointsToAdd = 300;
-      } else if (winner === 'impostor') {
-        // Impostor solo win
-        if (p.role === 'IMPOSTOR') pointsToAdd = 300;
+        if (p.role === 'CIVILIAN') {
+          pts = 3;
+          if (votedIsEnemy) pts += 1; // Bonus Fiuto: hanno votato il nemico giusto
+        }
+      } else {
+        // Impostor / Mr. Wolf / Enemies win
+        if (p.role === 'IMPOSTOR' || p.role === 'MR_WOLF') {
+          pts = 5;
+          impostorWinAdd = 1;
+          // Bonus Infiltrato: il nemico non ha ricevuto voti (hanno votato un civile)
+          if (hasVote && !votedIsEnemy) pts += 2;
+        }
       }
 
-      return { ...p, score: p.score + (pointsToAdd * multiplier) };
+      return {
+        ...p,
+        score: p.score + pts * multiplier,
+        impostorWins: (p.impostorWins || 0) + impostorWinAdd
+      };
     });
   };
 
   const endGame = (winner: 'players' | 'impostor' | 'mr_wolf' | 'enemies', method: 'vote' | 'guess' | 'time' = 'vote', voted?: Player) => {
     if (!gameData) return;
-
     const updatedPlayers = calculateScores(winner, method, gameData);
-
     setGameData({
       ...gameData,
       players: updatedPlayers,
@@ -209,12 +451,13 @@ const App: React.FC = () => {
       winMethod: method,
       votedPlayer: voted || gameData.votedPlayer
     });
-
     setGameState(GameState.RESULT);
   };
 
   const handleResultNext = () => {
-    if (settings.mode === 'TOURNAMENT') {
+    if (settings.mode === 'GROUP_TOURNAMENT') {
+      handleGroupTournamentResultNext();
+    } else if (settings.mode === 'TOURNAMENT') {
       setGameState(GameState.LEADERBOARD);
     } else {
       restart();
@@ -232,7 +475,6 @@ const App: React.FC = () => {
     const top4 = sortedPlayers.slice(0, 4);
     const top4Names = top4.map(p => p.name);
     const finalSettings = { ...settings, players: top4Names };
-    // Force simple impostor for final to avoid chaos with few players
     finalSettings.enemyConfig = 'IMPOSTOR_ONLY';
     startGame(finalSettings, top4, gameData.currentRound + 1, true, gameData.usedWords);
   };
@@ -240,6 +482,7 @@ const App: React.FC = () => {
   const restart = () => {
     setGameState(GameState.SETUP);
     setGameData(null);
+    setGroupTournamentState(null);
   };
 
   return (
@@ -250,7 +493,13 @@ const App: React.FC = () => {
       <main className="w-full h-full flex flex-col">
         {gameState === GameState.SETUP && (
           <SetupScreen
-            onStart={(s) => startGame(s)}
+            onStart={(s) => {
+              if (s.mode === 'GROUP_TOURNAMENT') {
+                startGroupTournament(s);
+              } else {
+                startGame(s);
+              }
+            }}
             initialSettings={settings}
             onOpenInstructions={() => setGameState(GameState.INSTRUCTIONS)}
           />
@@ -258,6 +507,14 @@ const App: React.FC = () => {
 
         {gameState === GameState.INSTRUCTIONS && (
           <InstructionsScreen onBack={() => setGameState(GameState.SETUP)} />
+        )}
+
+        {gameState === GameState.GROUP_LOBBY && groupTournamentState && (
+          <GroupLobbyScreen
+            tournamentState={groupTournamentState}
+            onStartGroup={startCurrentGroup}
+            onAbort={restart}
+          />
         )}
 
         {gameState === GameState.REVEAL && gameData && (
@@ -298,12 +555,31 @@ const App: React.FC = () => {
         )}
 
         {gameState === GameState.LEADERBOARD && gameData && (
-          <LeaderboardScreen
-            gameData={gameData}
-            totalRounds={settings.totalRounds}
-            onNextRound={nextRound}
-            onStartFinal={startFinalRound}
-            onEndTournament={restart}
+          settings.mode === 'GROUP_TOURNAMENT' ? (
+            <LeaderboardScreen
+              gameData={gameData}
+              totalRounds={settings.totalRounds}
+              onNextRound={nextRound}
+              onStartFinal={startFinalRound}
+              onEndTournament={restart}
+              groupTournamentState={groupTournamentState}
+              onAdvanceGroup={advanceGroupTournament}
+            />
+          ) : (
+            <LeaderboardScreen
+              gameData={gameData}
+              totalRounds={settings.totalRounds}
+              onNextRound={nextRound}
+              onStartFinal={startFinalRound}
+              onEndTournament={restart}
+            />
+          )
+        )}
+
+        {gameState === GameState.TOURNAMENT_WINNERS && groupTournamentState && (
+          <TournamentWinnersScreen
+            tournamentState={groupTournamentState}
+            onRestart={restart}
           />
         )}
       </main>
@@ -311,13 +587,34 @@ const App: React.FC = () => {
   );
 };
 
-// Voting screen with confirmation
+// ── Voting screen with discussion timer ───────────────────────────────────────
+
+const DISCUSSION_DURATION = 120; // 2 minuti
+
 const VotingScreen: React.FC<{
   gameData: GameData;
   settings: GameSettings;
   onPlayerVoted: (player: Player) => void;
 }> = ({ gameData, settings, onPlayerVoted }) => {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [discussionTime, setDiscussionTime] = useState(DISCUSSION_DURATION);
+
+  useEffect(() => {
+    if (discussionTime <= 0) return;
+    const timer = setInterval(() => {
+      setDiscussionTime((prev) => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="w-full flex flex-col h-full animate-in fade-in zoom-in duration-300">
@@ -332,6 +629,18 @@ const VotingScreen: React.FC<{
             ? "Basta trovare uno dei nemici per vincere! Scegliete bene."
             : "Toccate il nome del giocatore che sospettate."}
         </p>
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <i className={`fa-solid fa-comments text-xl ${discussionTime <= 30 ? 'text-rose-400' : 'text-indigo-400'}`}></i>
+          <div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Discussione</p>
+            <div className={`text-3xl font-bungee ${discussionTime <= 30 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
+              {formatTime(discussionTime)}
+            </div>
+          </div>
+          {discussionTime === 0 && (
+            <span className="ml-2 text-rose-400 font-bold text-sm animate-pulse">Tempo scaduto!</span>
+          )}
+        </div>
       </div>
 
       <div className="glass flex-1 p-4 rounded-3xl overflow-y-auto custom-scrollbar flex flex-col gap-3">
