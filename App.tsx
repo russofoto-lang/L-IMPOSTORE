@@ -490,6 +490,18 @@ const App: React.FC = () => {
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 blur-[100px] rounded-full -z-10"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-900/10 blur-[120px] rounded-full -z-10"></div>
 
+      {/* Floating display button — always visible */}
+      <a
+        href="/?dashboard=1"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-white hover:border-indigo-500 text-sm font-bold backdrop-blur transition-all"
+        title="Apri display proiezione"
+      >
+        <i className="fa-solid fa-tv text-indigo-400"></i>
+        <span className="hidden sm:inline">Display</span>
+      </a>
+
       <main className="w-full h-full flex flex-col">
         {gameState === GameState.SETUP && (
           <SetupScreen
