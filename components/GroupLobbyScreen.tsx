@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GroupTournamentState } from '../types';
 import { Button } from './ui/Button';
 
@@ -32,9 +32,9 @@ const GroupLobbyScreen: React.FC<GroupLobbyScreenProps> = ({
   // Group letter label (A, B, C, ...)
   const groupLetter = (idx: number) => String.fromCharCode(65 + idx);
 
-  const openDashboard = () => {
-    window.open(`${window.location.href.split('?')[0]}?dashboard=1`, '_blank');
-  };
+  const dashboardUrl = `${window.location.origin}/?dashboard=1`;
+  const openDashboard = () => window.open(dashboardUrl, '_blank');
+  const [showUrl, setShowUrl] = useState(false);
 
   return (
     <div className="w-full space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-6">
@@ -54,14 +54,31 @@ const GroupLobbyScreen: React.FC<GroupLobbyScreenProps> = ({
             : `${rounds} round · Top ${advancers} ${advancers === 1 ? 'avanza direttamente' : 'avanzano direttamente'}`}
         </p>
         {/* Projection button */}
-        <button
-          onClick={openDashboard}
-          className="mt-1 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 text-sm font-bold transition-all"
-          title="Apri proiezione su grande schermo"
-        >
-          <i className="fa-solid fa-tv text-indigo-400"></i>
-          Proiezione
-        </button>
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={openDashboard}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 hover:text-white hover:border-indigo-500 text-sm font-bold transition-all"
+            >
+              <i className="fa-solid fa-tv text-indigo-400"></i>
+              Apri Proiezione
+            </button>
+            <button
+              onClick={() => setShowUrl(v => !v)}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white text-sm transition-all"
+              title="Mostra URL per altri dispositivi"
+            >
+              <i className="fa-solid fa-link text-xs"></i>
+            </button>
+          </div>
+          {showUrl && (
+            <div className="glass p-3 rounded-xl text-left space-y-1 animate-in fade-in duration-200">
+              <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">URL proiezione (stessa WiFi)</p>
+              <p className="text-indigo-300 font-mono text-xs break-all select-all">{dashboardUrl}</p>
+              <p className="text-slate-600 text-xs">Apri sul dispositivo collegato al proiettore</p>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Current group highlight */}

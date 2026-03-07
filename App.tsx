@@ -100,36 +100,41 @@ const App: React.FC = () => {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [groupTournamentState, setGroupTournamentState] = useState<GroupTournamentState | null>(null);
 
-  // ── Dashboard localStorage sync ──────────────────────────────────────────────
+  // ── Dashboard sync: localStorage (same device) + /_sync endpoint (cross-device) ──
   useEffect(() => {
-    try {
-      const ds: DashboardState = {
-        gameState: gameState,
-        tournamentPhase: groupTournamentState?.phase ?? null,
-        groupLabel: groupTournamentState
-          ? groupTournamentState.phase === 'FINAL'
-            ? 'Finale'
-            : `Girone ${groupTournamentState.currentGroupIndex + 1} / ${groupTournamentState.groups.length}`
-          : '',
-        roundLabel: gameData
-          ? `Round ${gameData.currentRound} / ${groupTournamentState?.phase === 'FINAL' ? groupTournamentState.finalRounds : (groupTournamentState?.groupRounds ?? settings.totalRounds)}`
-          : '',
-        currentPlayers: gameData
-          ? [...gameData.players]
-              .sort((a, b) => b.score - a.score)
-              .map(p => ({ name: p.name, score: p.score }))
-          : [],
-        allGroups: groupTournamentState?.groups ?? [],
-        currentGroupIndex: groupTournamentState?.currentGroupIndex ?? 0,
-        directQualifiers: groupTournamentState?.directQualifiers ?? [],
-        wildCardPool: groupTournamentState?.wildCardPool ?? [],
-        wildCardsNeeded: groupTournamentState?.wildCardsNeeded ?? 0,
-        finalists: groupTournamentState?.finalists ?? [],
-        numGroups: groupTournamentState?.numGroups ?? 0,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(DASHBOARD_KEY, JSON.stringify(ds));
-    } catch {}
+    const groupLabel = groupTournamentState
+      ? groupTournamentState.phase === 'FINAL'
+        ? 'Finale'
+        : `Girone ${String.fromCharCode(65 + groupTournamentState.currentGroupIndex)} / ${groupTournamentState.groups.length}`
+      : '';
+    const ds: DashboardState = {
+      gameState: gameState,
+      tournamentPhase: groupTournamentState?.phase ?? null,
+      groupLabel,
+      roundLabel: gameData
+        ? `Round ${gameData.currentRound} / ${groupTournamentState?.phase === 'FINAL' ? groupTournamentState.finalRounds : (groupTournamentState?.groupRounds ?? settings.totalRounds)}`
+        : '',
+      currentPlayers: gameData
+        ? [...gameData.players]
+            .sort((a, b) => b.score - a.score)
+            .map(p => ({ name: p.name, score: p.score }))
+        : [],
+      allGroups: groupTournamentState?.groups ?? [],
+      currentGroupIndex: groupTournamentState?.currentGroupIndex ?? 0,
+      directQualifiers: groupTournamentState?.directQualifiers ?? [],
+      wildCardPool: groupTournamentState?.wildCardPool ?? [],
+      wildCardsNeeded: groupTournamentState?.wildCardsNeeded ?? 0,
+      finalists: groupTournamentState?.finalists ?? [],
+      numGroups: groupTournamentState?.numGroups ?? 0,
+      timestamp: Date.now(),
+    };
+    const json = JSON.stringify(ds);
+    // Same device/tab: localStorage + BroadcastChannel
+    try { localStorage.setItem(DASHBOARD_KEY, json); } catch {}
+    try { new BroadcastChannel(DASHBOARD_KEY).postMessage(json); } catch {}
+    // Cross-device (same WiFi): POST to Vite dev server in-memory endpoint
+    fetch('/_sync', { method: 'POST', body: json, headers: { 'Content-Type': 'application/json' } })
+      .catch(() => {}); // silent fail in production/offline
   }, [gameState, gameData, groupTournamentState, settings.totalRounds]);
 
   // Pick a random word avoiding already used words

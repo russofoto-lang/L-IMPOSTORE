@@ -2,15 +2,26 @@
 /**
  * DashboardView — Vista proiezione torneo (16:9, grande schermo)
  *
- * Si apre in una nuova tab con ?dashboard=1 e legge i dati dal localStorage
- * scritto dall'app principale. Si aggiorna automaticamente via Storage Events.
+ * Sync priority:
+ *  1. GET /_sync  — cross-device (telefono + TV sulla stessa WiFi, via Vite dev server)
+ *  2. BroadcastChannel — stesso browser, tab diverse
+ *  3. localStorage — fallback stesso dispositivo
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardState, WildCardCandidate } from '../types';
 
 const DASHBOARD_KEY = 'impostore_dashboard';
 
-const readDashboard = (): DashboardState | null => {
+// Try network sync first, fall back to localStorage
+const fetchDashboard = async (): Promise<DashboardState | null> => {
+  try {
+    const res = await fetch('/_sync', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data) return data as DashboardState;
+    }
+  } catch {}
+  // Fallback: localStorage (same device)
   try {
     const raw = localStorage.getItem(DASHBOARD_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -80,29 +91,74 @@ const MEDAL_BG = [
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 const DashboardView: React.FC = () => {
-  const [ds, setDs] = useState<DashboardState | null>(readDashboard);
+  const [ds, setDs] = useState<DashboardState | null>(null);
+  const [syncMode, setSyncMode] = useState<'network' | 'local' | 'waiting'>('waiting');
 
-  // Poll every 2s + listen to storage events
+  // Multi-source sync: /_sync (network) > BroadcastChannel > localStorage
   useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const res = await fetch('/_sync', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && !cancelled) { setDs(data); setSyncMode('network'); return; }
+        }
+      } catch {}
+      // Fallback to localStorage
+      try {
+        const raw = localStorage.getItem(DASHBOARD_KEY);
+        if (raw && !cancelled) { setDs(JSON.parse(raw)); setSyncMode('local'); }
+      } catch {}
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 1500);
+
+    // BroadcastChannel for instant same-browser updates
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(DASHBOARD_KEY);
+      bc.onmessage = (e) => { try { if (!cancelled) { setDs(JSON.parse(e.data)); setSyncMode('local'); } } catch {} };
+    } catch {}
+
+    // StorageEvent fallback
     const onStorage = (e: StorageEvent) => {
-      if (e.key === DASHBOARD_KEY) setDs(readDashboard());
+      if (e.key === DASHBOARD_KEY && e.newValue && !cancelled) {
+        try { setDs(JSON.parse(e.newValue)); setSyncMode('local'); } catch {}
+      }
     };
     window.addEventListener('storage', onStorage);
-    const interval = setInterval(() => setDs(readDashboard()), 2000);
+
     return () => {
-      window.removeEventListener('storage', onStorage);
+      cancelled = true;
       clearInterval(interval);
+      bc?.close();
+      window.removeEventListener('storage', onStorage);
     };
   }, []);
+
+  // URL that other devices can use to view this dashboard
+  const dashboardUrl = `${window.location.origin}/?dashboard=1`;
 
   if (!ds) {
     return (
       <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-6xl">📺</div>
-          <h1 className="text-4xl font-bungee text-indigo-400">Proiezione Torneo</h1>
-          <p className="text-slate-400 text-xl">In attesa dell'avvio del torneo...</p>
-          <p className="text-slate-600 text-sm">Apri il torneo sull'app principale</p>
+        <div className="text-center space-y-6 max-w-lg px-8">
+          <div className="text-8xl">📺</div>
+          <h1 className="text-5xl font-bungee text-indigo-400">Proiezione Torneo</h1>
+          <p className="text-slate-300 text-2xl">In attesa del torneo...</p>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 space-y-2 text-left">
+            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">URL proiezione</p>
+            <p className="text-indigo-300 font-mono text-lg break-all">{dashboardUrl}</p>
+            <p className="text-slate-600 text-sm">
+              Apri questo link sul dispositivo del proiettore mentre giochi sul telefono
+            </p>
+          </div>
+          <div className="flex items-center gap-2 justify-center text-slate-600 text-sm">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+            <span>In ascolto aggiornamenti...</span>
+          </div>
         </div>
       </div>
     );
@@ -182,8 +238,15 @@ const DashboardView: React.FC = () => {
             <div className="text-slate-400 text-sm uppercase tracking-widest font-bold">{ds.roundLabel}</div>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`}></div>
+        <div className="flex items-center gap-4">
+          {/* Sync mode indicator */}
+          <div className="flex items-center gap-2" title={syncMode === 'network' ? 'Sync rete attiva' : 'Sync locale'}>
+            <div className={`w-2.5 h-2.5 rounded-full ${syncMode === 'network' ? 'bg-green-400' : 'bg-amber-400'} animate-pulse`}></div>
+            <span className={`text-xs uppercase tracking-wider font-bold ${syncMode === 'network' ? 'text-green-500' : 'text-amber-500'}`}>
+              {syncMode === 'network' ? 'RETE' : 'LOCALE'}
+            </span>
+          </div>
+          <div className={`w-3 h-3 rounded-full ${isPlaying ? 'bg-indigo-400 animate-pulse' : 'bg-slate-600'}`}></div>
           <span className="text-slate-400 text-sm uppercase tracking-wider font-bold">
             {isPlaying ? 'IN CORSO' : ds.gameState === 'GROUP_LOBBY' ? 'IN ATTESA' : ds.gameState}
           </span>
