@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GameState, Player, GameSettings, GameData, Role, EnemyConfig } from './types';
+import { GameState, Player, GameSettings, GameData, Role, EnemyConfig, GroupTournamentState } from './types';
 import { WORD_CATEGORIES, INITIAL_NAMES } from './constants';
 import { Button } from './components/ui/Button';
 
@@ -12,6 +12,8 @@ import ResultScreen from './components/ResultScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import MrWolfScreen from './components/MrWolfScreen';
 import InstructionsScreen from './components/InstructionsScreen';
+import GroupLobbyScreen from './components/GroupLobbyScreen';
+import TournamentWinnersScreen from './components/TournamentWinnersScreen';
 
 const USED_WORDS_KEY = 'impostore_used_words';
 
@@ -30,6 +32,59 @@ const saveUsedWordsToStorage = (words: string[]) => {
   } catch {}
 };
 
+// Splits N players into groups of 4 or 5.
+// Uses a greedy approach: maximize groups of 5 first, then fill with 4s.
+// Falls back to even distribution if no clean split is possible.
+const splitIntoGroups = (playerNames: string[], shuffleArray: <T>(a: T[]) => T[]): string[][] => {
+  const shuffled = shuffleArray([...playerNames]);
+  const n = shuffled.length;
+
+  // Find a combination of groups of 4 and 5 that covers n players.
+  // n = 4*a + 5*b  — maximize b (prefer groups of 5).
+  let bestA = -1, bestB = -1;
+  for (let b = Math.floor(n / 5); b >= 0; b--) {
+    const remaining = n - 5 * b;
+    if (remaining >= 0 && remaining % 4 === 0) {
+      bestA = remaining / 4;
+      bestB = b;
+      break;
+    }
+  }
+
+  let sizes: number[];
+  if (bestA >= 0) {
+    sizes = [...Array(bestB).fill(5), ...Array(bestA).fill(4)];
+  } else {
+    // Fallback: distribute as evenly as possible into ceil(n/5) groups
+    const numGroups = Math.ceil(n / 5);
+    const base = Math.floor(n / numGroups);
+    const extra = n % numGroups;
+    sizes = Array.from({ length: numGroups }, (_, i) => base + (i < extra ? 1 : 0));
+  }
+
+  const groups: string[][] = [];
+  let start = 0;
+  for (const size of sizes) {
+    groups.push(shuffled.slice(start, start + size));
+    start += size;
+  }
+  return groups;
+};
+
+// Calculate how many players advance from each group.
+// Target: 4–5 total finalists.
+const calcAdvancersPerGroup = (groups: string[][]): number[] => {
+  const G = groups.length;
+  // Find A such that G * A is in [4, 5]
+  for (let A = 1; A <= Math.max(...groups.map(g => g.length)) - 1; A++) {
+    if (G * A >= 4 && G * A <= 5) return Array(G).fill(A);
+  }
+  // No clean fit: target ceil(4.5 / G) but adjust so total ≈ 4–5
+  const base = Math.floor(5 / G);
+  const extra = 5 - base * G;
+  return Array.from({ length: G }, (_, i) => base + (i < extra ? 1 : 0));
+};
+
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.SETUP);
   const [globalUsedWords, setGlobalUsedWords] = useState<string[]>(loadUsedWordsFromStorage);
@@ -43,17 +98,16 @@ const App: React.FC = () => {
     showCategoryHint: false
   });
   const [gameData, setGameData] = useState<GameData | null>(null);
+  const [groupTournamentState, setGroupTournamentState] = useState<GroupTournamentState | null>(null);
 
-  // Pick a random word avoiding already used words (both in-session and across sessions)
+  // Pick a random word avoiding already used words
   const pickWord = (selectedCategories: string[], sessionUsedWords: string[]): { word: string; category: string; resetGlobal: boolean } => {
     const availableCategories = WORD_CATEGORIES.filter(c => selectedCategories.includes(c.name));
     const allWords = availableCategories.flatMap(c => c.words.map(w => ({ word: w, category: c.name })));
 
-    // Merge session used words with globally persisted used words
     const allUsed = Array.from(new Set([...globalUsedWords, ...sessionUsedWords]));
     const unused = allWords.filter(w => !allUsed.includes(w.word));
 
-    // If all words used, reset global pool
     const resetGlobal = unused.length === 0;
     const pool = resetGlobal ? allWords : unused;
     const picked = pool[Math.floor(Math.random() * pool.length)];
@@ -80,19 +134,14 @@ const App: React.FC = () => {
   ) => {
     setSettings(newSettings);
 
-    // Pick a random word from selected categories, avoiding repeats across sessions
     const { word, category, resetGlobal } = pickWord(newSettings.selectedCategories, previousUsedWords);
 
-    // Update global used words in state and localStorage
     const newGlobalUsedWords = resetGlobal ? [word] : Array.from(new Set([...globalUsedWords, word]));
     setGlobalUsedWords(newGlobalUsedWords);
     saveUsedWordsToStorage(newGlobalUsedWords);
 
-    // Role Assignment Logic
     const playerCount = newSettings.players.length;
     const availableIndices = Array.from({ length: playerCount }, (_, i) => i);
-
-    // Shuffle indices for role assignment
     const shuffledRoleIndices = shuffleArray(availableIndices);
 
     const roles: Role[] = new Array(playerCount).fill('CIVILIAN');
@@ -103,11 +152,9 @@ const App: React.FC = () => {
     } else if (newSettings.enemyConfig === 'WOLF_ONLY') {
        roles[shuffledRoleIndices[0]] = 'MR_WOLF';
     } else {
-       // Default Impostor Only
        roles[shuffledRoleIndices[0]] = 'IMPOSTOR';
     }
 
-    // Shuffle play order
     const shuffledPlayerOrder = shuffleArray(Array.from({ length: playerCount }, (_, i) => i));
 
     const players: Player[] = shuffledPlayerOrder.map((originalIndex, newIndex) => {
@@ -135,6 +182,114 @@ const App: React.FC = () => {
     setGameState(GameState.REVEAL);
   };
 
+  // ─── GROUP TOURNAMENT ─────────────────────────────────────────────────────
+
+  const startGroupTournament = (newSettings: GameSettings) => {
+    setSettings(newSettings);
+    const groups = splitIntoGroups(newSettings.players, shuffleArray);
+    const advancers = calcAdvancersPerGroup(groups);
+    const gt: GroupTournamentState = {
+      phase: 'GROUPS',
+      groups,
+      currentGroupIndex: 0,
+      groupRounds: newSettings.totalRounds,
+      finalRounds: Math.max(2, newSettings.totalRounds),
+      advancersPerGroup: advancers,
+      finalists: [],
+      allGroupResults: []
+    };
+    setGroupTournamentState(gt);
+    setGameState(GameState.GROUP_LOBBY);
+  };
+
+  // Called when user presses "Inizia Girone" on the lobby screen
+  const startCurrentGroup = () => {
+    if (!groupTournamentState) return;
+    const { groups, currentGroupIndex, groupRounds, phase, finalRounds } = groupTournamentState;
+    const groupPlayers = groups[currentGroupIndex];
+    const rounds = phase === 'FINAL' ? finalRounds : groupRounds;
+    const groupSettings: GameSettings = {
+      ...settings,
+      players: groupPlayers,
+      mode: 'TOURNAMENT',
+      totalRounds: rounds,
+      enemyConfig: groupPlayers.length < 5 ? 'IMPOSTOR_ONLY' : settings.enemyConfig
+    };
+    startGame(groupSettings, undefined, 1, false, []);
+  };
+
+  // Called after a group's multi-round result → transitions to leaderboard then next group
+  const handleGroupTournamentResultNext = () => {
+    setGameState(GameState.LEADERBOARD);
+  };
+
+  // Called when user clicks "Avanza" on the leaderboard after a group finishes
+  const advanceGroupTournament = () => {
+    if (!gameData || !groupTournamentState) return;
+    const { groups, currentGroupIndex, advancersPerGroup, phase, finalists, allGroupResults } = groupTournamentState;
+
+    // Sort this group's players by score
+    const sorted = [...gameData.players].sort((a, b) => b.score - a.score);
+    const advanceCount = phase === 'FINAL' ? sorted.length : advancersPerGroup[currentGroupIndex];
+    const advancing = sorted.slice(0, advanceCount);
+
+    const groupResult = {
+      groupIndex: currentGroupIndex,
+      players: sorted.map(p => ({ name: p.name, score: p.score }))
+    };
+
+    const newAllGroupResults = [...allGroupResults, groupResult];
+
+    if (phase === 'FINAL') {
+      // Tournament is over — show winners
+      const winners = advancing.map(p => ({ name: p.name, groupScore: p.score }));
+      setGroupTournamentState(prev => prev ? {
+        ...prev,
+        allGroupResults: newAllGroupResults,
+        finalists: winners
+      } : prev);
+      setGameState(GameState.TOURNAMENT_WINNERS);
+      return;
+    }
+
+    // Add advancing players to finalists
+    const newFinalists = [
+      ...finalists,
+      ...advancing.map(p => ({ name: p.name, groupScore: p.score }))
+    ];
+
+    const nextGroupIndex = currentGroupIndex + 1;
+    const allGroupsDone = nextGroupIndex >= groups.length;
+
+    if (allGroupsDone) {
+      // Start final round
+      const finalistNames = newFinalists.map(f => f.name);
+      const finalGroups = splitIntoGroups(finalistNames, shuffleArray);
+      const newGt: GroupTournamentState = {
+        ...groupTournamentState,
+        phase: 'FINAL',
+        groups: finalGroups,
+        currentGroupIndex: 0,
+        advancersPerGroup: finalGroups.map(g => Math.min(2, g.length)),
+        finalists: newFinalists,
+        allGroupResults: newAllGroupResults
+      };
+      setGroupTournamentState(newGt);
+      setGameState(GameState.GROUP_LOBBY);
+    } else {
+      // Move to next group
+      setGroupTournamentState(prev => prev ? {
+        ...prev,
+        currentGroupIndex: nextGroupIndex,
+        finalists: newFinalists,
+        allGroupResults: newAllGroupResults
+      } : prev);
+      setGameState(GameState.GROUP_LOBBY);
+    }
+  };
+
+  // ─── REGULAR GAME FLOW ────────────────────────────────────────────────────
+
   const finishReveal = () => {
     setGameState(GameState.PLAYING);
   };
@@ -143,28 +298,20 @@ const App: React.FC = () => {
     setGameState(GameState.VOTING);
   };
 
-  // Logic to handle vote outcome: Player selection
   const handlePlayerVoted = (votedPlayer: Player) => {
     if (!gameData) return;
-
-    // Store the voted player
     setGameData(prev => prev ? { ...prev, votedPlayer } : prev);
-
     if (votedPlayer.role === 'MR_WOLF') {
-       // Wolf Caught -> Last Chance
        setGameState(GameState.WOLF_GUESS);
     } else if (votedPlayer.role === 'IMPOSTOR') {
-       // Impostor Caught -> Civilians Win
        endGame('players', 'vote', votedPlayer);
     } else {
-       // Civilian Caught -> Enemies Win
        const winner = settings.enemyConfig === 'WOLF_ONLY' ? 'mr_wolf' :
                       settings.enemyConfig === 'BOTH' ? 'enemies' : 'impostor';
        endGame(winner, 'vote', votedPlayer);
     }
   };
 
-  // Logic for Mr Wolf guessing result
   const handleWolfGuess = (correct: boolean) => {
     if (correct) {
       endGame('mr_wolf', 'guess');
@@ -174,7 +321,8 @@ const App: React.FC = () => {
   };
 
   const calculateScores = (winner: 'players' | 'impostor' | 'mr_wolf' | 'enemies', method: 'vote' | 'guess' | 'time', currentData: GameData): Player[] => {
-    if (settings.mode !== 'TOURNAMENT') return currentData.players;
+    // Score calculation applies to TOURNAMENT and GROUP_TOURNAMENT modes
+    if (settings.mode === 'SINGLE') return currentData.players;
 
     return currentData.players.map(p => {
       let pointsToAdd = 0;
@@ -183,13 +331,10 @@ const App: React.FC = () => {
       if (winner === 'players') {
         if (p.role === 'CIVILIAN') pointsToAdd = 100;
       } else if (winner === 'mr_wolf') {
-        // Mr. Wolf solo win (guessed the word)
         if (p.role === 'MR_WOLF') pointsToAdd = 500;
       } else if (winner === 'enemies') {
-        // Both enemies win (civilian voted out in BOTH mode)
         if (p.role === 'IMPOSTOR' || p.role === 'MR_WOLF') pointsToAdd = 300;
       } else if (winner === 'impostor') {
-        // Impostor solo win
         if (p.role === 'IMPOSTOR') pointsToAdd = 300;
       }
 
@@ -199,9 +344,7 @@ const App: React.FC = () => {
 
   const endGame = (winner: 'players' | 'impostor' | 'mr_wolf' | 'enemies', method: 'vote' | 'guess' | 'time' = 'vote', voted?: Player) => {
     if (!gameData) return;
-
     const updatedPlayers = calculateScores(winner, method, gameData);
-
     setGameData({
       ...gameData,
       players: updatedPlayers,
@@ -209,12 +352,13 @@ const App: React.FC = () => {
       winMethod: method,
       votedPlayer: voted || gameData.votedPlayer
     });
-
     setGameState(GameState.RESULT);
   };
 
   const handleResultNext = () => {
-    if (settings.mode === 'TOURNAMENT') {
+    if (settings.mode === 'GROUP_TOURNAMENT') {
+      handleGroupTournamentResultNext();
+    } else if (settings.mode === 'TOURNAMENT') {
       setGameState(GameState.LEADERBOARD);
     } else {
       restart();
@@ -232,7 +376,6 @@ const App: React.FC = () => {
     const top4 = sortedPlayers.slice(0, 4);
     const top4Names = top4.map(p => p.name);
     const finalSettings = { ...settings, players: top4Names };
-    // Force simple impostor for final to avoid chaos with few players
     finalSettings.enemyConfig = 'IMPOSTOR_ONLY';
     startGame(finalSettings, top4, gameData.currentRound + 1, true, gameData.usedWords);
   };
@@ -240,6 +383,7 @@ const App: React.FC = () => {
   const restart = () => {
     setGameState(GameState.SETUP);
     setGameData(null);
+    setGroupTournamentState(null);
   };
 
   return (
@@ -250,7 +394,13 @@ const App: React.FC = () => {
       <main className="w-full h-full flex flex-col">
         {gameState === GameState.SETUP && (
           <SetupScreen
-            onStart={(s) => startGame(s)}
+            onStart={(s) => {
+              if (s.mode === 'GROUP_TOURNAMENT') {
+                startGroupTournament(s);
+              } else {
+                startGame(s);
+              }
+            }}
             initialSettings={settings}
             onOpenInstructions={() => setGameState(GameState.INSTRUCTIONS)}
           />
@@ -258,6 +408,14 @@ const App: React.FC = () => {
 
         {gameState === GameState.INSTRUCTIONS && (
           <InstructionsScreen onBack={() => setGameState(GameState.SETUP)} />
+        )}
+
+        {gameState === GameState.GROUP_LOBBY && groupTournamentState && (
+          <GroupLobbyScreen
+            tournamentState={groupTournamentState}
+            onStartGroup={startCurrentGroup}
+            onAbort={restart}
+          />
         )}
 
         {gameState === GameState.REVEAL && gameData && (
@@ -298,12 +456,31 @@ const App: React.FC = () => {
         )}
 
         {gameState === GameState.LEADERBOARD && gameData && (
-          <LeaderboardScreen
-            gameData={gameData}
-            totalRounds={settings.totalRounds}
-            onNextRound={nextRound}
-            onStartFinal={startFinalRound}
-            onEndTournament={restart}
+          settings.mode === 'GROUP_TOURNAMENT' ? (
+            <LeaderboardScreen
+              gameData={gameData}
+              totalRounds={settings.totalRounds}
+              onNextRound={nextRound}
+              onStartFinal={startFinalRound}
+              onEndTournament={restart}
+              groupTournamentState={groupTournamentState}
+              onAdvanceGroup={advanceGroupTournament}
+            />
+          ) : (
+            <LeaderboardScreen
+              gameData={gameData}
+              totalRounds={settings.totalRounds}
+              onNextRound={nextRound}
+              onStartFinal={startFinalRound}
+              onEndTournament={restart}
+            />
+          )
+        )}
+
+        {gameState === GameState.TOURNAMENT_WINNERS && groupTournamentState && (
+          <TournamentWinnersScreen
+            tournamentState={groupTournamentState}
+            onRestart={restart}
           />
         )}
       </main>

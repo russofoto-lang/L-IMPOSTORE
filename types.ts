@@ -7,10 +7,12 @@ export enum GameState {
   VOTING = 'VOTING',
   WOLF_GUESS = 'WOLF_GUESS',
   RESULT = 'RESULT',
-  LEADERBOARD = 'LEADERBOARD'
+  LEADERBOARD = 'LEADERBOARD',
+  GROUP_LOBBY = 'GROUP_LOBBY',
+  TOURNAMENT_WINNERS = 'TOURNAMENT_WINNERS'
 }
 
-export type GameMode = 'SINGLE' | 'TOURNAMENT';
+export type GameMode = 'SINGLE' | 'TOURNAMENT' | 'GROUP_TOURNAMENT';
 
 export type Role = 'CIVILIAN' | 'IMPOSTOR' | 'MR_WOLF';
 
@@ -45,4 +47,20 @@ export interface GameData {
   isFinalRound?: boolean;
   votedPlayer?: Player;
   usedWords: string[];
+}
+
+export interface GroupTournamentState {
+  phase: 'GROUPS' | 'FINAL';
+  groups: string[][];           // all groups (player names)
+  currentGroupIndex: number;    // which group is playing now
+  groupRounds: number;          // rounds per group
+  finalRounds: number;          // rounds in the final
+  advancersPerGroup: number[];  // how many advance from each group
+  // players who advanced from completed groups (name + their group score)
+  finalists: { name: string; groupScore: number }[];
+  // all players with their results for display
+  allGroupResults: {
+    groupIndex: number;
+    players: { name: string; score: number }[];
+  }[];
 }

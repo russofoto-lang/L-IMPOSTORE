@@ -4,6 +4,9 @@ import { GameSettings, GameMode, EnemyConfig } from '../types';
 import { WORD_CATEGORIES } from '../constants';
 import { Button } from './ui/Button';
 
+// Minimum players required for GROUP_TOURNAMENT
+const MIN_GROUP_TOURNAMENT_PLAYERS = 8;
+
 interface SetupScreenProps {
   onStart: (settings: GameSettings) => void;
   onOpenInstructions: () => void;
@@ -68,7 +71,9 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
 
   const duplicateIndices = getDuplicateIndices();
   const hasEmptyNames = players.some(p => !p.trim());
-  const canStart = duplicateIndices.size === 0 && !hasEmptyNames && selectedCategories.length > 0;
+  const isGroupTournament = mode === 'GROUP_TOURNAMENT';
+  const canStart = duplicateIndices.size === 0 && !hasEmptyNames && selectedCategories.length > 0
+    && (!isGroupTournament || players.length >= MIN_GROUP_TOURNAMENT_PLAYERS);
 
   const handleStart = () => {
     if (!canStart) return;
@@ -105,20 +110,48 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
       </header>
 
       {/* Mode Selection */}
-      <section className="glass p-2 rounded-2xl flex">
+      <section className="glass p-2 rounded-2xl flex gap-1">
         <button
-          className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${mode === 'SINGLE' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          className={`flex-1 py-3 rounded-xl font-bold text-base transition-all ${mode === 'SINGLE' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           onClick={() => setMode('SINGLE')}
         >
           Singola
         </button>
         <button
-          className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${mode === 'TOURNAMENT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          className={`flex-1 py-3 rounded-xl font-bold text-base transition-all ${mode === 'TOURNAMENT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           onClick={() => setMode('TOURNAMENT')}
         >
           Torneo
         </button>
+        <button
+          className={`flex-1 py-3 rounded-xl font-bold text-base transition-all ${mode === 'GROUP_TOURNAMENT' ? 'bg-amber-500 text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          onClick={() => setMode('GROUP_TOURNAMENT')}
+        >
+          <i className="fa-solid fa-sitemap mr-1 text-sm"></i>
+          Gironi
+        </button>
       </section>
+
+      {/* GROUP_TOURNAMENT info banner */}
+      {mode === 'GROUP_TOURNAMENT' && (
+        <section className="glass p-4 rounded-2xl border border-amber-500/30 space-y-1 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+            <i className="fa-solid fa-sitemap"></i>
+            Torneo a Gironi
+          </div>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            I giocatori vengono divisi automaticamente in gironi da <strong>4 o 5</strong>.
+            Ogni girone gioca il suo mini-torneo, poi i migliori si qualificano alla
+            <strong> finale</strong> dove si determinano <strong>1–2 vincitori</strong>.
+          </p>
+          {players.length < MIN_GROUP_TOURNAMENT_PLAYERS && (
+            <p className="text-rose-400 text-xs font-bold mt-1">
+              <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+              Servono almeno {MIN_GROUP_TOURNAMENT_PLAYERS} giocatori ({players.length}/{MIN_GROUP_TOURNAMENT_PLAYERS})
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Enemy Config Selection */}
       <section className="glass p-5 rounded-3xl space-y-4 border-rose-500/20">
@@ -187,11 +220,11 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
         </div>
       </section>
 
-      {mode === 'TOURNAMENT' && (
+      {(mode === 'TOURNAMENT' || mode === 'GROUP_TOURNAMENT') && (
         <section className="glass p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
           <h2 className="text-xl font-bold flex items-center gap-2 text-rose-400">
             <i className="fa-solid fa-trophy"></i>
-            Torneo: {rounds} Round
+            {mode === 'GROUP_TOURNAMENT' ? `Round per Girone: ${rounds}` : `Torneo: ${rounds} Round`}
           </h2>
           <input
             type="range"
@@ -201,6 +234,11 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
             onChange={(e) => setRounds(parseInt(e.target.value))}
             className="w-full accent-rose-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
           />
+          {mode === 'GROUP_TOURNAMENT' && (
+            <p className="text-slate-500 text-xs">
+              Ogni girone gioca {rounds} round. La finale gioca lo stesso numero di round.
+            </p>
+          )}
         </section>
       )}
 
@@ -314,9 +352,13 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStart, onOpenInstructions, 
         size="lg"
         onClick={handleStart}
         disabled={!canStart}
-        className={`text-xl py-5 ${!canStart ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`text-xl py-5 ${!canStart ? 'opacity-50 cursor-not-allowed' : ''} ${mode === 'GROUP_TOURNAMENT' ? 'bg-amber-500 hover:bg-amber-400 text-black' : ''}`}
       >
-        Inizia {mode === 'TOURNAMENT' ? 'Torneo' : 'Partita'}
+        {mode === 'GROUP_TOURNAMENT'
+          ? <><i className="fa-solid fa-sitemap mr-2"></i>Inizia Torneo a Gironi</>
+          : mode === 'TOURNAMENT'
+          ? 'Inizia Torneo'
+          : 'Inizia Partita'}
       </Button>
     </div>
   );
