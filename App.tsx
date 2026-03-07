@@ -491,16 +491,7 @@ const App: React.FC = () => {
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-900/10 blur-[120px] rounded-full -z-10"></div>
 
       {/* Floating display button — always visible */}
-      <a
-        href="/?dashboard=1"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-white hover:border-indigo-500 text-sm font-bold backdrop-blur transition-all"
-        title="Apri display proiezione"
-      >
-        <i className="fa-solid fa-tv text-indigo-400"></i>
-        <span className="hidden sm:inline">Display</span>
-      </a>
+      <DisplayButton />
 
       <main className="w-full h-full flex flex-col">
         {gameState === GameState.SETUP && (
@@ -595,6 +586,74 @@ const App: React.FC = () => {
           />
         )}
       </main>
+    </div>
+  );
+};
+
+// ── Display button: always-visible floating button with URL panel ─────────────
+const DisplayButton: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/?dashboard=1`;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  const copy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-400 hover:text-white hover:border-indigo-500 text-sm font-bold backdrop-blur transition-all"
+      >
+        <i className="fa-solid fa-tv text-indigo-400"></i>
+        <span>Display</span>
+      </button>
+
+      {open && (
+        <div className="absolute top-12 right-0 w-72 glass rounded-2xl p-4 space-y-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">Indirizzo display (proiettore)</p>
+
+          {isLocalhost && (
+            <div className="bg-amber-900/40 border border-amber-700/50 rounded-xl p-2.5 text-amber-300 text-xs leading-relaxed">
+              <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+              Stai usando <b>localhost</b> — il proiettore non può connettersi.<br />
+              Usa l'IP di rete dal terminale:<br />
+              <span className="font-mono text-amber-200">Network: http://192.168.x.x:3000</span>
+            </div>
+          )}
+
+          <div className="bg-slate-900 rounded-xl p-2.5 font-mono text-indigo-300 text-xs break-all select-all">
+            {url}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={copy}
+              className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-all"
+            >
+              {copied ? <><i className="fa-solid fa-check mr-1"></i>Copiato!</> : <><i className="fa-solid fa-copy mr-1"></i>Copia URL</>}
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold text-center transition-all"
+            >
+              <i className="fa-solid fa-arrow-up-right-from-square mr-1"></i>
+              Apri
+            </a>
+          </div>
+
+          <p className="text-slate-600 text-xs">
+            Sul proiettore: apri il browser e scrivi questo indirizzo (stessa rete WiFi)
+          </p>
+        </div>
+      )}
     </div>
   );
 };
